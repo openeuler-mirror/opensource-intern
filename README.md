@@ -1,33 +1,17 @@
-# opensource-intern
+## opensource-intern
 
 #### 介绍
-This reposiroty will provide the content of openEuler opensource intern.
-
-#### 软件架构
-软件架构说明
-
-
-#### 安装教程
-
-1.  xxxx
-2.  xxxx
-3.  xxxx
-
-#### 使用说明
-
-1.  xxxx
-2.  xxxx
-3.  xxxx
+本仓库存储了在高校操作系统教学中涉及的一些教学案例相关的代码，包括：软件包格式、开源软件供应链、操作系统、网络编程、网络安全、网络管理等方向。
 
 #### 参与贡献
 
-1.  Fork 本仓库
-2.  新建 Feat_xxx 分支
-3.  提交代码
-4.  新建 Pull Request
+1.  Fork 本仓库到自己的账户下，使用 `git clone` 命令将 Fork 仓库 Clone 到本地开发环境
+2.  `git checkout master` 到 `master` 分支，然后进行提交
+3.  在 Fork 仓库中提交代码，并在仓库中提交一个 Pull Request。
+4.  新建 Pull Request 并提交
 
 
-#### 特技
+#### 相关资料
 
 1.  使用 Readme\_XXX.md 来支持不同的语言，例如 Readme\_en.md, Readme\_zh.md
 2.  Gitee 官方博客 [blog.gitee.com](https://blog.gitee.com)
