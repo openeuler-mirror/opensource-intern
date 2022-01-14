@@ -1,7 +1,7 @@
-# opensource-intern
+## opensource-intern
 
 #### Description
-This reposiroty will provide the content of openEuler opensource intern.
+This repository stores code related to some cases involved in teaching operating systems in colleges and universities, including: software package formats, open source software supply chain security, operating systems, network programming, network security, network management and other directions.
 
 #### Software Architecture
 Software architecture description
@@ -20,10 +20,10 @@ Software architecture description
 
 #### Contribution
 
-1.  Fork the repository
-2.  Create Feat_xxx branch
-3.  Commit your code
-4.  Create Pull Request
+1.  Clone the Fork repository to your account, and use the `git clone` command to clone the Fork repository to your local development environment.
+2.  `git checkout master` to the `master` branch, then commit.
+3.  Commit the code in the Fork repository and submit a Pull Request in the repository.
+4.  Create a new Pull Request and submit it.
 
 
 #### Gitee Feature
