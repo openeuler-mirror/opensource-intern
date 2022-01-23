@@ -8,3 +8,7 @@ edition = "2021"
 [dependencies]
 nom = "7"
 thiserror = "1"
+num-derive = "0.3"
+num-traits = "0.2"
+enum-primitive-derive = "0.2"
+enum-display-derive = "0.1"

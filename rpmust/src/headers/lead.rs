@@ -1,8 +1,9 @@
 use nom::bytes::complete;
 use nom::number::complete::{be_u16, be_u8};
 
+use super::constants::*;
 use super::errors::*;
-pub const RPM_MAGIC: [u8; 4] = [0xed, 0xab, 0xee, 0xdb];
+
 #[derive(Debug)]
 pub struct Lead {
     magic: [u8; 4],
