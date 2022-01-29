@@ -6,7 +6,7 @@ pub mod rpm;
 use rpm::*;
 
 fn main() -> io::Result<()> {
-    let mut file = std::fs::File::open("D:/rpm/opensource-intern/rpmust/src/test/stratovirt.rpm").expect("should be able to open rpm file");
+    let mut file = std::fs::File::open("./test/stratovirt.rpm").expect("should be able to open rpm file");
     let file_size = file.metadata().unwrap().len();
     println!("{}",file_size);
     let mut buf_reader = std::io::BufReader::with_capacity(file_size as usize,file);
