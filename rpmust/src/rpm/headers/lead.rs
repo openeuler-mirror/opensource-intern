@@ -4,7 +4,6 @@ use nom::number::complete::{be_u16, be_u8};
 use super::constants::*;
 use super::errors::*;
 
-#[derive(Debug)]
 pub struct Lead {
     magic: [u8; 4],
     major: u8,
@@ -15,6 +14,23 @@ pub struct Lead {
     os: u16,
     signature_type: u16,
     reserved: [u8; 16],
+}
+
+impl std::fmt::Debug for Lead {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let name = String::from_utf8_lossy(&self.name);
+        f.debug_struct("Lead")
+            .field("magic", &self.magic)
+            .field("major", &self.major)
+            .field("minor", &self.minor)
+            .field("package_type", &self.package_type)
+            .field("arch", &self.arch)
+            .field("name", &name)
+            .field("os", &self.os)
+            .field("signature_type", &self.signature_type)
+            .field("reserved", &self.reserved)
+            .finish()
+    }
 }
 
 impl Lead {

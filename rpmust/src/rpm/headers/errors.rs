@@ -1,9 +1,13 @@
 use thiserror::Error;
 use nom;
+use std::io;
 
 #[derive(Error, Debug)]
 #[non_exhaustive]
 pub enum RPMError {
+    #[error(transparent)]
+    Io(#[from] io::Error),
+
     #[error("{0}")]
     Nom(String),
     #[error(
@@ -13,6 +17,18 @@ pub enum RPMError {
         expected: u8,
         actual: u8,
         complete_input: Vec<u8>,
+    },
+    #[error("unsupported Version {0} - only header version 1 is supported")]
+    UnsupportedHeaderVersion(u8),
+    #[error("invalid tag {raw_tag} for store {store_type}")]
+    InvalidTag {
+        raw_tag: u32,
+        store_type: &'static str,
+    },
+    #[error("invalid tag data type in store {store_type}: expected 0 - 9 but got {raw_data_type}")]
+    InvalidTagDataType {
+        raw_data_type: u32,
+        store_type: &'static str,
     },
     #[error(
         "unsupported lead major version {0} - only version 3 is supported"
