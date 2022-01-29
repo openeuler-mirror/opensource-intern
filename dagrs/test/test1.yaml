@@ -1,0 +1,16 @@
+dagrs:
+  a:
+    name: "任务1"
+    rely: [b, c]
+  b:
+    name: "任务2"
+    rely: [c]
+  c:
+    name: "任务3"
+    rely: [d]
+  d:
+    name: "任务4"
+    rely: [e]
+  e:
+    name: "任务5"
+    rely: [c]
