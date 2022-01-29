@@ -9,19 +9,15 @@
 
 为了使得程序能够正常运行，请确保计算机上安装了 Google Chrome / Chromium / Microsoft Edge，（安装在默认的位置，在当前的PATH中，或配置了二进制文件位置），因为现在自动下载 Chromium 功能还[不可用](https://github.com/atroche/rust-headless-chrome/issues/286).
 
-请确保您的`book.toml`中存在以下内容:
+一个最简单的`book.toml` 示例如下：
 
 ```toml
+[book]
+title = "An Example"
+
 [output.html]
 
 [output.pdf]
-```
-
-而且，`[output.html.print]`也没有被禁用（默认情况下应该是启用的，所以如果您的`book.toml`中没有出现以下行，请不要担心）。
-
-```toml
-[output.html.print]
-enable = true
 ```
 
 最后，您可以使用 `mdbook build` 命令生成书籍并获取PDF文件，您的PDF文件将被存放在`book/pdf/output.put`。
