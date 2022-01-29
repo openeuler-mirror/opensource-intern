@@ -26,3 +26,7 @@ title = "An Example"
 支持自定义PDF纸张方向、页面缩放比例、纸张宽度和高度、页面边距、生成的PDF页面范围、是否显示页眉和页脚以及自定义其格式等。
 
 查看 [book.toml](test_doc/book.toml#L10-L33) 以了解 `[output.pdf]` 可用配置的详细信息。
+
+## 关于 [headless_chrome](headless_chrome)
+
+由于直接使用上游 [headless_chrome](https://github.com/atroche/rust-headless-chrome) crate 对生成 PDF 不友好，容易导致超时错误。向上游提出了增加管理所有计时器的选项要求，但[上游不同意相关请求，只下放了部分计时器控制权限](https://github.com/atroche/rust-headless-chrome/issues/287)，因而无法满足需求。所以引入上游源代码文件（许可证为 MIT），并应用补丁，将相关PDF打印接口超时设置为5分钟，从而保证功能和编译。
