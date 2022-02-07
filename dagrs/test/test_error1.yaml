@@ -1,0 +1,6 @@
+dagrs:
+  a:
+    # no name
+    rely: [b]
+  b:
+    name: "任务2"
