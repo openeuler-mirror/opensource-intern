@@ -11,14 +11,23 @@
 命令行使用方式为：
 
 ```bash
-$ dagrs <filename>
+$ dagrs -h
+dagrs 0.1.0
+
+USAGE:
+    dagrs --filepath <FILEPATH>
+
+OPTIONS:
+    -f, --filepath <FILEPATH>    YAML file path
+    -h, --help                   Print help information
+    -V, --version                Print version information
 ```
 
 例如:
 
 ```bash
-$ dagrs test/test2.yaml
-[Start] -> a -> b -> f -> d -> c -> g -> e -> h -> [End]
+$ dagrs -f test/test_dag.yaml
+[Start] -> d -> a -> b -> f -> c -> g -> e -> h -> [End]
 ```
 
 
@@ -42,6 +51,7 @@ dagrs:
 
 - 这里有三个任务：a，b 和 c。这里的 a，b，c 并不是 `name` ，而是标识任务的标识，可以认为是 ID。
 - 例如 a 指向 b 和 c，表示 a 在 b，c 之前执行，写做 `rely: [b, c]` 。
+- **注意，重复的 ID 会覆盖之前的任务定义。**
 
 最终形成的图如下，那么一个可行的执行顺序是： `A->B->C->D->E`
 
