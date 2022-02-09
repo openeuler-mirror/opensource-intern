@@ -3,28 +3,27 @@
 use crate::{
     error_handler::{DagError, FormatErrorMark},
     graph::Graph,
-    task::Task,
+    task::TaskTrait,
 };
-use std::{collections::HashMap, fs::File, io::Read};
-use yaml_rust::YamlLoader;
+use std::collections::HashMap;
 
 /// dagrs's function is wrapped in DagEngine struct
-pub struct DagEngine {
+pub struct DagEngine<T: TaskTrait> {
     /// Store all tasks' infos
-    tasks: HashMap<String, Task>,
+    tasks: HashMap<String, T>,
     /// Store dependency relations
     rely_graph: Graph,
 }
 
-impl DagEngine {
+impl<T: TaskTrait> DagEngine<T> {
     /// Allocate a new DagEngine
-    /// 
+    ///
     /// # Example
     /// ```
     /// let dagrs = DagEngine::new();
     /// ```
     /// This function is usually used with `run`.
-    pub fn new() -> DagEngine {
+    pub fn new() -> DagEngine<T> {
         DagEngine {
             tasks: HashMap::new(),
             rely_graph: Graph::new(),
@@ -32,50 +31,31 @@ impl DagEngine {
     }
 
     /// Do dagrs's job
-    /// 
+    ///
     /// # Example
     /// ```
     /// let dagrs = DagEngine::new();
     /// dagrs.run("test/test_dag.yaml");
     /// ```
-    pub fn run(&mut self, tasks_list: &str) -> Result<bool, DagError> {
-        self.read_tasks(tasks_list)?;
+    pub fn run(&mut self, task_info_file: &str) -> Result<bool, DagError> {
+        self.read_tasks(task_info_file);
         self.create_graph()?;
         Ok(self.check_dag())
     }
 
     /// Read tasks into engine throuh yaml
-    /// 
+    ///
     /// # Example
     /// ```
     /// let yaml_tasks = dagrs.read_task("test/test.yaml");
     /// ```
     /// This operation will read all info in yaml file into `dagrs.tasks` if no error occurs.
-    fn read_tasks(&mut self, filename: &str) -> Result<(), DagError> {
-        let mut yaml_cont = String::new();
-
-        let mut yaml_file = File::open(filename)?;
-        yaml_file.read_to_string(&mut yaml_cont)?;
-
-        // Parse Yaml
-        let yaml_tasks = YamlLoader::load_from_str(&yaml_cont)?;
-        let yaml_tasks = yaml_tasks[0]["dagrs"]
-            .as_hash()
-            .ok_or(DagError::format_error("", FormatErrorMark::StartWordError))?;
-
-        // Read tasks
-        for (v, w) in yaml_tasks {
-            let id = v.as_str().unwrap(); // .ok_or(DagError::form("task id error"))?;
-            let task = Task::from_yaml(id, w)?;
-
-            self.tasks.insert(id.to_owned(), task);
-        }
-
-        Ok(())
+    fn read_tasks(&mut self, filename: &str) {
+        self.tasks = T::from_file(filename);
     }
 
     /// create rely map between tasks
-    /// 
+    ///
     /// # Example
     /// ```
     /// dagrs.create_graph();
@@ -109,7 +89,7 @@ impl DagEngine {
     }
 
     /// Check whether it's DAG or not
-    /// 
+    ///
     /// # Example
     /// ```
     /// dagrs.check_dag();

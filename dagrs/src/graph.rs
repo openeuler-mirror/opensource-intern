@@ -95,6 +95,18 @@ impl Graph {
     /// or it will print `Loop Detected`.
     /// 
     /// **Note**: this function can only be called after graph's initialization (add nodes and edges, etc.) is done.
+    /// 
+    /// # Principle
+    /// Reference: [Topological Sorting](https://www.jianshu.com/p/b59db381561a)
+    /// 
+    /// 1. For a grapg g, we record the indgree of every node.
+    /// 
+    /// 2. Each time we start from a node with zero indegree, name it N0, and N0 can be executed since it has no dependency.
+    /// 
+    /// 3. And then we decrease the indegree of N0's children (those tasks depend on N0), this would create some new zero indegree nodes.
+    /// 
+    /// 4. Just repeat step 2, 3 until no more zero degree nodes can be generated.
+    ///    If all tasks have been executed, then it's a DAG, or there must be a loop in the graph.
     pub fn topo_sort(&self) -> bool {
         let mut queue = Vec::new();
         let mut indegree = self.indegree.clone();
