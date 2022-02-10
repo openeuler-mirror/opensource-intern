@@ -68,6 +68,7 @@ pub mod task;
 
 use clap::Parser;
 use dag_engine::DagEngine;
+use task::Task;
 
 #[derive(Parser)]
 #[clap(version)]
@@ -80,7 +81,7 @@ struct Args {
 
 fn main() {
     let args = Args::parse();
-    let mut dagrs = DagEngine::new();
+    let mut dagrs: DagEngine<Task> = DagEngine::new();
 
     if let Err(e) = dagrs.run(&args.filepath) {
         println!("[Error] {}", e);
@@ -89,26 +90,26 @@ fn main() {
 
 #[test]
 fn test_dag() {
-    let res = DagEngine::new().run("test/test_dag.yaml").unwrap();
+    let res = DagEngine::<Task>::new().run("test/test_dag.yaml").unwrap();
     assert_eq!(res, true)
 }
 
 #[test]
 fn test_loop() {
-    let res = DagEngine::new().run("test/test_loop1.yaml").unwrap();
+    let res = DagEngine::<Task>::new().run("test/test_loop1.yaml").unwrap();
     assert_eq!(res, false)
 }
 
 #[test]
 fn test_complex_loop() {
-    let res = DagEngine::new().run("test/test_loop2.yaml").unwrap();
+    let res = DagEngine::<Task>::new().run("test/test_loop2.yaml").unwrap();
     assert_eq!(res, false)
 }
 
 #[test]
 fn test_format_error1() {
     use error_handler::{DagError, FormatErrorMark};
-    let res = DagEngine::new().run("test/test_error1.yaml");
+    let res = DagEngine::<Task>::new().run("test/test_error1.yaml");
     assert_eq!(
         res,
         Err(DagError::format_error("a".into(), FormatErrorMark::NoName))
@@ -118,7 +119,7 @@ fn test_format_error1() {
 #[test]
 fn test_format_error2() {
     use error_handler::{DagError, FormatErrorMark};
-    let res = DagEngine::new().run("test/test_error2.yaml");
+    let res = DagEngine::<Task>::new().run("test/test_error2.yaml");
     assert_eq!(
         res,
         Err(DagError::format_error("".into(), FormatErrorMark::StartWordError))
@@ -129,7 +130,7 @@ fn test_format_error2() {
 #[test]
 fn test_rely_error() {
     use error_handler::{DagError, FormatErrorMark};
-    let res = DagEngine::new().run("test/test_error3.yaml");
+    let res = DagEngine::<Task>::new().run("test/test_error3.yaml");
     assert_eq!(
         res,
         Err(DagError::format_error("a".into(), FormatErrorMark::RelyIDIllegal))
