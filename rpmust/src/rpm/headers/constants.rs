@@ -4,6 +4,7 @@
 //! C headers.
 
 use std::fmt::Display;
+use serde::{Serialize, Deserialize};
 
 pub const HEADER_IMAGE: isize = 61;
 pub const HEADER_SIGNATURES: isize = 62;
@@ -22,6 +23,8 @@ pub const RPMTAG_SIG_BASE: isize = HEADER_SIGBASE;
     Copy,
     Clone,
     enum_display_derive::Display,
+    Serialize,
+    Deserialize,
 )]
 #[allow(non_camel_case_types)]
 pub enum IndexTag {
@@ -365,6 +368,8 @@ pub enum IndexTag {
     Copy,
     Clone,
     enum_display_derive::Display,
+    Serialize,
+    Deserialize,
 )]
 #[allow(non_camel_case_types)]
 pub enum IndexSignatureTag {
