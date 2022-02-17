@@ -19,3 +19,7 @@ Cargo.lock
 
 # IDE
 .idea
+
+# rpmust
+rpmust/*.yaml
+rpmust/*.cpio
