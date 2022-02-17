@@ -1,4 +1,3 @@
-
 use std::fmt;
 use nom::bytes::complete;
 use nom::number::complete::{be_i16, be_i32, be_i64, be_i8, be_u32, be_u8};

@@ -104,6 +104,8 @@ impl Lead {
     }
 }
 
+/// impl the serialize and deserialize for [T; 66] 
+/// 66 is a unusual number so they didn't impl
 trait BigArray<'de>: Sized {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
         where S: Serializer;
