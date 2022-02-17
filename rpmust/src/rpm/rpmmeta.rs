@@ -1,5 +1,7 @@
 use super::headers::*;
+use serde::{Serialize, Deserialize};
 
+#[derive(Debug, PartialEq, Serialize, Deserialize)]
 pub struct RPMPackageMetadata {
     pub lead: Lead,
     pub signature: Header<IndexSignatureTag>,

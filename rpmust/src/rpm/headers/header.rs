@@ -1,4 +1,3 @@
-
 use std::fmt;
 use nom::bytes::complete;
 use nom::number::complete::{be_i16, be_i32, be_i64, be_i8, be_u32, be_u8};
@@ -6,6 +5,7 @@ use num::*;
 use super::constants::{self,*};
 use std::convert::TryInto;
 use super::errors::*;
+use serde::{Serialize, Deserialize};
 
 pub trait Tag:
     num::FromPrimitive + num::ToPrimitive + PartialEq + fmt::Display + fmt::Debug + Copy + TypeName
@@ -23,15 +23,12 @@ impl<T> Tag for T where
 {
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Serialize, Deserialize)]
 pub struct Header<T: num::FromPrimitive> {
     pub(crate) index_header: IndexHeader,
     pub(crate) index_entries: Vec<IndexEntry<T>>,
     pub(crate) store: Vec<u8>,
 }
-
-
-
 
 impl<T> Header<T> 
 where
@@ -116,7 +113,7 @@ where
         })
     }
 }
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Serialize, Deserialize)]
 pub(crate) struct IndexHeader {
     /// rpm specific magic header
     pub(crate) magic: [u8; 3],
@@ -161,7 +158,7 @@ impl IndexHeader {
     }
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Serialize, Deserialize)]
 pub(crate) struct IndexEntry<T: num::FromPrimitive> {
     pub(crate) tag: T,
     pub(crate) data: IndexData,
@@ -224,7 +221,7 @@ impl Header<IndexSignatureTag> {
     }
 }
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub(crate) enum IndexData {
     Null,
     Char(Vec<u8>),

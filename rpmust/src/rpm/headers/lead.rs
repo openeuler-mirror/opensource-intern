@@ -1,15 +1,22 @@
 use nom::bytes::complete;
 use nom::number::complete::{be_u16, be_u8};
-
+use std::io::prelude::*;
+use std::fmt;
 use super::constants::*;
 use super::errors::*;
+use serde::{Serialize, Deserialize};
+use std::marker::PhantomData;
+use serde::ser::{Serializer, SerializeTuple};
+use serde::de::{Deserializer, Visitor, SeqAccess, Error};
 
+#[derive(PartialEq, Serialize, Deserialize)]
 pub struct Lead {
     magic: [u8; 4],
     major: u8,
     minor: u8,
     package_type: u16,
     arch: u16,
+    #[serde(with = "BigArray")]
     name: [u8; 66],
     os: u16,
     signature_type: u16,
@@ -94,5 +101,60 @@ impl Lead {
             signature_type: sigtype,
             reserved: rest.try_into().unwrap(),
         })
+    }
+}
+
+/// impl the serialize and deserialize for [T; 66] 
+/// 66 is a unusual number so they didn't impl
+trait BigArray<'de>: Sized {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+        where S: Serializer;
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+        where D: Deserializer<'de>;
+}
+
+impl<'de, T> BigArray<'de> for [T; 66]
+    where T: Default + Copy + Serialize + Deserialize<'de>
+{
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+        where S: Serializer
+    {
+        let mut seq = serializer.serialize_tuple(self.len())?;
+        for elem in &self[..] {
+            seq.serialize_element(elem)?;
+        }
+        seq.end()
+    }
+
+    fn deserialize<D>(deserializer: D) -> Result<[T; 66], D::Error>
+        where D: Deserializer<'de>
+    {
+        struct ArrayVisitor<T> {
+            element: PhantomData<T>,
+        }
+
+        impl<'de, T> Visitor<'de> for ArrayVisitor<T>
+            where T: Default + Copy + Deserialize<'de>
+        {
+            type Value = [T; 66];
+
+            fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+                formatter.write_str(concat!("an array of length ", 66))
+            }
+
+            fn visit_seq<A>(self, mut seq: A) -> Result<[T; 66], A::Error>
+                where A: SeqAccess<'de>
+            {
+                let mut arr = [T::default(); 66];
+                for i in 0..66 {
+                    arr[i] = seq.next_element()?
+                        .ok_or_else(|| Error::invalid_length(i, &self))?;
+                }
+                Ok(arr)
+            }
+        }
+
+        let visitor = ArrayVisitor { element: PhantomData };
+        deserializer.deserialize_tuple(66, visitor)
     }
 }
