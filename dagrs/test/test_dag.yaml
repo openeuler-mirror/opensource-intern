@@ -2,23 +2,31 @@ dagrs:
   a:
     name: "任务1"
     rely: [b, c]
+    run: "1"
   b:
     name: "任务2"
     rely: [c, f, g]
+    run: "2"
   c:
     name: "任务3"
     rely: [e, g]
+    run: "3"
   d:
     name: "任务4"
     rely: [c, e]
+    run: "4"
   e:
     name: "任务5"
     rely: [h]
+    run: "5"
   f:
     name: "任务6"
     rely: [g]
+    run: "6"
   g:
     name: "任务7"
     rely: [h]
+    run: "7"
   h:
     name: "任务8"
+    run: "8"
