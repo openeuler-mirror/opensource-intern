@@ -2,3 +2,4 @@ dagrs:
   a:
     name: "任务1"
     rely: [b]
+    run: "echo a"

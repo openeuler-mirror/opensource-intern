@@ -2,15 +2,20 @@ dagrs:
   a:
     name: "任务1"
     rely: [b, c]
+    run: "1"
   b:
     name: "任务2"
     rely: [c]
+    run: "2"
   c:
     name: "任务3"
     rely: [d]
+    run: "3"
   d:
     name: "任务4"
     rely: [e]
+    run: "4"
   e:
     name: "任务5"
     rely: [c]
+    run: "4"

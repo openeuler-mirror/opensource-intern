@@ -1,82 +1,151 @@
 //! Task Implementations, used to store task infos
 
-use std::{collections::HashMap, fs::File, io::Read, process::exit};
-
-use crate::error_handler::{DagError, FormatErrorMark};
+use crate::error_handler::{DagError, FormatError, InnerError};
+use lazy_static::lazy_static;
+use std::process::Command;
+use std::sync::Mutex;
+use std::{collections::HashMap, fs::File, io::Read};
 use yaml_rust::{Yaml, YamlLoader};
 
-/// Struct that implement this trait can be taken as a task accepted by DagEngine.
-pub trait TaskTrait where Self:Sized {
-    /// Get the ID of a task.
-    fn get_ID(&self) -> String;
-    /// Get the dependency list of a task.
-    fn get_rely_list(&self) -> &Vec<String>;
-    /// Parse all tasks from file and form a hash map (ID to task struct mapping).
-    fn from_file(filename: &str) -> HashMap<String, Self>;
+/// Task Trait.
+///
+/// Any struct implements this trait can be added into dagrs.
+pub trait TaskTrait {
+    fn run(&self);
 }
 
-/// Task Struct
-#[derive(Debug)]
-pub struct Task {
-    /// Task ID, must be unique
-    pub ID: String,
-    /// Task Name, can repeat
-    pub name: String,
-    /// Dependency relations, store relied tasks' ID
-    pub relys: Vec<String>, 
+/// Wrapper for task that impl [`TaskTrait`].
+pub struct TaskWrapper {
+    id: usize,
+    name: String,
+    rely_list: Vec<usize>,
+    inner: Box<dyn TaskTrait>,
 }
 
-impl TaskTrait for Task {
-    /// Get the ID of a task
-    /// 
+impl TaskWrapper {
+    /// Allocate a new TaskWrapper.
+    ///
     /// # Example
     /// ```
-    /// let id = task.get_ID();
-    /// println!("{}", id);
+    /// let t = TaskWrapper::new(Task{}, "Demo Task")
     /// ```
-    fn get_ID(&self) -> String {
-        self.ID.to_owned()
-    }
-
-    /// Get dependency tasks list
-    /// 
-    /// # Example
-    /// Usually used like:
-    /// ```
-    /// let relys = tasks.get_rely_list();
-    /// for rely_task in relys{
-    ///     ...
-    /// }
-    /// ```
-    fn get_rely_list(&self) -> &Vec<String> {
-        &self.relys
-    }
-
-    /// Read all tasks from file, and return a hash map recording ID to Task Struct
-    /// 
-    /// # Example
-    /// ```
-    /// let tasks = Task::from_file("test/test_dag.yaml")
-    /// ```
-    fn from_file(filename: &str) -> HashMap<String, Self> {
-        let res = Task::read_tasks(filename);
-        if let Err(e) = res {
-            println!("[Error] {}", e);
-            exit(0);
-        } else {
-            res.unwrap()
+    ///
+    /// `Task` is a struct that impl [`TaskTrait`].
+    ///
+    /// **Note:** This method will take the ownership of struct that impl [`TaskTrait`].
+    pub fn new(task: impl TaskTrait + 'static, name: &str) -> Self {
+        TaskWrapper {
+            id: ID_ALLOCATOR.lock().unwrap().alloc(),
+            name: name.to_owned(),
+            rely_list: Vec::new(),
+            inner: Box::new(task),
         }
     }
 
-
-}
-
-impl Task {
-    /// Parse Task from Yaml
-    /// 
+    #[allow(unused)]
+    /// Tasks that shall be executed after this one.
+    ///
     /// # Example
     /// ```
-    /// let task = Task::from_yaml(id, yaml);
+    /// let mut t1 = TaskWrapper::new(T1{}, "Task 1");
+    /// let mut t2 = TaskWrapper::new(T2{}, "Task 2");
+    /// t2.add_relys(&[&t1]);
+    /// ```
+    /// In above code, `t2` will be executed before `t1`.
+    pub fn add_relys(&mut self, relys: &[&TaskWrapper]) {
+        self.rely_list.extend(relys.iter().map(|t| t.get_id()))
+    }
+
+    /// Tasks that shall be executed after this one.
+    ///
+    /// # Example
+    /// ```
+    /// let mut t1 = TaskWrapper::new(T1{}, "Task 1");
+    /// let mut t2 = TaskWrapper::new(T2{}, "Task 2");
+    /// t2.add_relys_by_ids(&[t1.get_id()]);
+    /// ```
+    /// Similar to `add_relys`, but this method tasks `id` rather than a task.
+    ///
+    /// In above code, `t2` will be executed before `t1`.
+    pub fn add_relys_by_ids(&mut self, relys: &[usize]) {
+        self.rely_list.extend(relys.iter())
+    }
+
+    pub fn get_rely_list(&self) -> Vec<usize> {
+        self.rely_list.clone()
+    }
+
+    pub fn get_id(&self) -> usize {
+        self.id
+    }
+
+    pub fn get_name(&self) -> String {
+        self.name.to_owned()
+    }
+
+    pub fn run(&self) {
+        self.inner.run()
+    }
+}
+
+/// IDAllocator for TaskWrapper
+struct IDAllocator {
+    id: usize,
+}
+
+impl IDAllocator {
+    pub fn alloc(&mut self) -> usize {
+        self.id += 1;
+
+        // Return values
+        self.id - 1
+    }
+}
+
+lazy_static! {
+    static ref ID_ALLOCATOR: Mutex<IDAllocator> = Mutex::new(IDAllocator { id: 0 });
+}
+
+#[derive(Debug)]
+/// Task Struct for YAML file.
+struct YamlTaskInner {
+    /// Running Script
+    run: String,
+}
+
+/// Task struct for YAML file.
+#[derive(Debug)]
+pub struct YamlTask {
+    /// Task's id in yaml file.
+    ///
+    /// Be careful that `yaml_id` is different from [`TaskWrapper`]'s id.
+    yaml_id: String,
+    /// Task's name.
+    name: String,
+    /// Record tasks' `yaml_id` that shall be executed after this task.
+    relys: Vec<String>,
+    /// A field shall be wrapper into [`TaskWrapper`] later.
+    inner: YamlTaskInner,
+}
+
+impl TaskTrait for YamlTaskInner {
+    fn run(&self) {
+        let output = Command::new("bash")
+            .arg("-c")
+            .arg(self.run.clone())
+            .output()
+            .unwrap();
+        println!("Exec stdout: {}", String::from_utf8(output.stdout).unwrap());
+        println!("Exec stderr: {}", String::from_utf8(output.stderr).unwrap());
+    }
+}
+
+impl YamlTask {
+    /// Parse a task from yaml.
+    ///
+    /// # Example
+    /// ```
+    /// let task = Task::parse_one(id, yaml);
     /// ```
     /// Here `id` and `yaml` comes from:
     /// ```
@@ -84,40 +153,52 @@ impl Task {
     /// let yaml_tasks = yaml_tasks[0]["dagrs"]
     /// .as_hash()
     /// .ok_or(DagError::format_error("", FormatErrorMark::StartWordError))?;
-    /// 
+    ///
     /// for(id, yaml) in yaml_tasks{
     ///     ...
     /// }
     /// ```
-    fn from_yaml(id: &str, info: &Yaml) -> Result<Task, DagError> {
+    fn parse_one(id: &str, info: &Yaml) -> Result<YamlTask, DagError> {
         // Get name first
-
         let name = info["name"]
             .as_str()
-            .ok_or(DagError::format_error(id, FormatErrorMark::NoName))?
+            .ok_or(DagError::format_error(FormatError::NoName(id.to_owned())))?
+            .to_owned();
+
+        // Get run script
+        let run = info["run"]
+            .as_str()
+            .ok_or(DagError::format_error(FormatError::NoRunScript(
+                id.to_owned(),
+            )))?
             .to_owned();
 
         // relys can be empty
         let mut relys = Vec::new();
         if let Some(rely_tasks) = info["rely"].as_vec() {
-            for rely_task_id in rely_tasks {
-                let rely_task_id = rely_task_id
-                    .as_str()
-                    .ok_or(DagError::format_error(id, FormatErrorMark::RelyIDIllegal))?
-                    .to_owned();
-                relys.push(rely_task_id)
-            }
+            rely_tasks
+                .iter()
+                .map(|rely_task_id| relys.push(rely_task_id.as_str().unwrap().to_owned()))
+                .count();
         }
 
-        Ok(Task {
-            ID: id.into(),
+        let inner = YamlTaskInner { run };
+
+        Ok(YamlTask {
+            yaml_id: id.to_string(),
             name,
             relys,
+            inner,
         })
     }
 
-    /// Read all tasks from yaml file.
-    fn read_tasks(filename: &str) -> Result<HashMap<String, Self>, DagError> {
+    /// Parse all tasks from yaml file.
+    ///
+    /// # Example
+    /// ```
+    /// let tasks = YamlTask::parse_tasks("test/test_dag.yaml")?;
+    /// ```
+    fn parse_tasks(filename: &str) -> Result<Vec<Self>, DagError> {
         let mut yaml_cont = String::new();
 
         let mut yaml_file = File::open(filename)?;
@@ -127,17 +208,60 @@ impl Task {
         let yaml_tasks = YamlLoader::load_from_str(&yaml_cont)?;
         let yaml_tasks = yaml_tasks[0]["dagrs"]
             .as_hash()
-            .ok_or(DagError::format_error("", FormatErrorMark::StartWordError))?;
+            .ok_or(DagError::format_error(FormatError::StartWordError))?;
 
-        let mut tasks = HashMap::new();
+        let mut tasks = Vec::new();
         // Read tasks
         for (v, w) in yaml_tasks {
-            let id = v.as_str().unwrap(); // .ok_or(DagError::form("task id error"))?;
-            let task = Task::from_yaml(id, w)?;
+            let id = v.as_str().unwrap();
+            let task = YamlTask::parse_one(id, w)?;
 
-            tasks.insert(id.to_owned(), task);
+            tasks.push(task);
         }
 
         Ok(tasks)
+    }
+
+    /// Parse all tasks from yaml file into format recognized by dagrs.
+    ///
+    /// # Example
+    /// ```
+    /// let tasks = YamlTask::from_yaml(filename)?;
+    /// ```
+    ///
+    /// Used in [`crate::DagEngine`].
+    pub fn from_yaml(filename: &str) -> Result<Vec<TaskWrapper>, DagError> {
+        let tasks = YamlTask::parse_tasks(filename)?;
+        let mut res = Vec::new();
+        let mut temp_hash_yaml2id = HashMap::new();
+        let mut temp_hash_id2rely = HashMap::new();
+
+        // Wrap tasks
+        tasks
+            .into_iter()
+            .map(|t| {
+                let task = TaskWrapper::new(t.inner, &t.name);
+                temp_hash_id2rely.insert(task.get_id(), t.relys);
+                temp_hash_yaml2id.insert(t.yaml_id, task.get_id());
+                res.push(task);
+            })
+            .count();
+
+        // Add Dependency
+        for task in &mut res {
+            let mut relys = Vec::new();
+            for rely in &temp_hash_id2rely[&task.get_id()] {
+                // Rely task existence check
+                if !temp_hash_yaml2id.contains_key(rely) {
+                    return Err(DagError::inner_error(InnerError::RelyTaskIllegal(
+                        task.get_name(),
+                    )));
+                }
+                relys.push(temp_hash_yaml2id[rely])
+            }
+            task.add_relys_by_ids(&relys)
+        }
+
+        Ok(res)
     }
 }

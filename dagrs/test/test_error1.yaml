@@ -2,5 +2,7 @@ dagrs:
   a:
     # no name
     rely: [b]
+    run: "echo 123"
   b:
     name: "任务2"
+    run: "echo 456"
