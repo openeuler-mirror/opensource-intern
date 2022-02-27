@@ -22,3 +22,8 @@ Cargo.lock
 
 # OS
 .DS_Store
+mail2list/vue-mail2list-web/node_modules/
+mail2list/vue-mail2list-web/package-lock.json
+mail2list/vue-mail2list-web/.vscode
+mail2list/vue-mail2list-web/.env.development
+mail2list/vue-mail2list-web/.env.production
