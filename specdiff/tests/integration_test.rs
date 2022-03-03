@@ -20,7 +20,13 @@ fn test_toml_should_work() {
     "#;
 
     let result = common::get_address_list(toml_str).unwrap();
-    let expected = vec![Address{name : "fpaste_f34".to_string(), x : "https://src.fedoraproject.org/rpms/fpaste/raw/rawhide/f/fpaste.spec".to_string(), y : "https://src.fedoraproject.org/rpms/fpaste/raw/f34/f/fpaste.spec".to_string()},
-                                    Address{name : "fpaste_epel8".to_string(), x :"https://src.fedoraproject.org/rpms/fpaste/raw/rawhide/f/fpaste.spec".to_string(), y : "https://src.fedoraproject.org/rpms/fpaste/raw/epel8/f/fpaste.spec".to_string()}];
+    let expected = vec![Address{name : "fpaste_f34".to_string(), out_name: None, x : "https://src.fedoraproject.org/rpms/fpaste/raw/rawhide/f/fpaste.spec".to_string(), y : "https://src.fedoraproject.org/rpms/fpaste/raw/f34/f/fpaste.spec".to_string()},
+                                    Address{name : "fpaste_epel8".to_string(), out_name: None, x :"https://src.fedoraproject.org/rpms/fpaste/raw/rawhide/f/fpaste.spec".to_string(), y : "https://src.fedoraproject.org/rpms/fpaste/raw/epel8/f/fpaste.spec".to_string()}];
     assert_eq!(result, expected);
+}
+
+
+#[test]
+fn test_format_line_should_work() {
+    
 }
