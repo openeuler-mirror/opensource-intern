@@ -2,21 +2,36 @@
 use specdiff::*;
 
 #[tokio::main]
-async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-
+async fn main() -> Result<(), SpecError> {
+    let args = Cli::parse();
     let addresses: Vec<Address> = Cli::get_address_list_from_cli().await?;
-    let mut specs_list: HashMap<String, Vec<String>> = HashMap::new();
+    let (spec_save_path, out_terminal, report_out_path) = (args.spec_save_path, args.terminal_out, args.report_out_path);
+    let mut out = true;
+    let mut diff_ratio_list: Vec<f32> = Vec::new();
+    let mut stdout = io::stdout();
+
+    let spec_path: String = match spec_save_path {
+        Some(path) => path,
+        None => "/tmp/specdiff/download/".to_string(),
+    };
+
+    let report_path: String = match report_out_path {
+        Some(path) => path,
+        None => ".".to_string(),
+    };
+
+    if let Some(false) = out_terminal {
+        out = false;
+    } 
+
+    fs::create_dir_all(&spec_path)?;
+    fs::create_dir_all(&report_path)?;
     for address in addresses {
-        let f1 = reqwest::get(address.x);
-        let f2 = reqwest::get(address.y);
-        let (res1, res2) = try_join!(f1, f2)?;
-        let body = vec![res1.text().await?, res2.text().await?];
-        specs_list.insert(address.name, body);
+        get_diff_from_address(address, &spec_path, &out, &report_path, &mut diff_ratio_list, &mut stdout).await?;
     }
 
-    for (name, specs) in specs_list {
-        get_diff(name, specs).await?;
-    }
+    let avg_ratio:f32 = diff_ratio_list.iter().sum::<f32>() / diff_ratio_list.len() as f32;
+    println!("The avg_ratio is: {}", avg_ratio);
     
     Ok(())
 }
