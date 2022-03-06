@@ -4,46 +4,45 @@ dagrs:
     rely: [b, c]
     run:
       type: sh
-      script: echo x
+      script: echo a
   b:
     name: "任务2"
     rely: [c, f, g]
     run:
       type: sh
-      script: echo x
+      script: echo b
   c:
     name: "任务3"
     rely: [e, g]
     run:
       type: sh
-      script: echo x
+      script: echo c
   d:
     name: "任务4"
     rely: [c, e]
     run:
       type: sh
-      script: echo x
+      script: echo d
   e:
     name: "任务5"
     rely: [h]
     run:
       type: sh
-      script: echo x
+      script: echo e
   f:
     name: "任务6"
     rely: [g]
     run:
-      type: sh
-      script: echo x
+      type: deno
+      script: Deno.core.print("f\n")
   g:
     name: "任务7"
     rely: [h]
     run:
-      type: sh
-      script: echo x
+      type: deno
+      script: Deno.core.print("g\n")
   h:
     name: "任务8"
-    rely: [f]
     run:
       type: sh
-      script: echo x
+      script: ./test/test.sh

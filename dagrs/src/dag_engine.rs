@@ -140,13 +140,15 @@ impl DagEngine {
             self.print_seq(&seq);
             seq.iter()
                 .map(|id| {
-                    println!("Executing Task[name: {}]", self.tasks[id].get_name());
-                    self.tasks[id].run();
+                    info!("Executing Task[name: {}]", self.tasks[id].get_name());
+                    if let Some(v) = self.tasks[id].run() {
+                        info!("Task[name: {}] exec done, success: {}, return value: {}", self.tasks[id].get_name(), v.success, v.value);
+                    }
                 })
                 .count();
             true
         } else {
-            println!("Loop Detect");
+            error!("Loop Detect");
             false
         }
     }
@@ -161,10 +163,10 @@ impl DagEngine {
     /// }
     /// ```
     fn print_seq(&self, seq: &Vec<usize>) {
-        print!("[Start]");
+        let mut res = String::from("[Start]");
         seq.iter()
-            .map(|id| print!(" -> {}", self.tasks[id].get_name()))
+            .map(|id| res.push_str(&format!(" -> {}", self.tasks[id].get_name())))
             .count();
-        println!(" -> [End]");
+        info!("{} -> [End]", res);
     }
 }
