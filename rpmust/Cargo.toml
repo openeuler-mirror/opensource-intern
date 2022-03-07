@@ -18,3 +18,9 @@ cpio = "0.2"
 clap = { version = "3.0.14", features = ["derive"] }
 serde = { version = "1.0", features = ["derive"] }
 serde_yaml = "0.8"
+bzip2 = { version = "0.4", features = ["tokio"] }
+flate2 = { version = "1.0.22", features = ["tokio"] }
+tar = "0.4.38"
+xz = { version = "0.1", features = ["tokio"] }
+zstd = "0.10.0"
+cpio_reader = "0.1.0"
