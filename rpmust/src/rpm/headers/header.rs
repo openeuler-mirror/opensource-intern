@@ -112,6 +112,15 @@ where
             store,
         })
     }
+
+    pub(crate) fn write<W: std::io::Write>(&self, out: &mut W) -> Result<(), RPMError> {
+        self.index_header.write(out)?;
+        for entry in &self.index_entries {
+            entry.write_index(out)?;
+        }
+        out.write_all(&self.store)?;
+        Ok(())
+    }
 }
 #[derive(Debug, PartialEq, Serialize, Deserialize)]
 pub(crate) struct IndexHeader {
@@ -202,6 +211,15 @@ impl <T: num::FromPrimitive + num::ToPrimitive + fmt::Debug + TypeName> IndexEnt
             },
         ))
     }
+
+    pub(crate) fn write_index<W: std::io::Write>(&self, out: &mut W) -> Result<(), RPMError> {
+        let mut written = out.write(&self.tag.to_u32().unwrap().to_be_bytes())?;
+        written += out.write(&self.data.to_u32().to_be_bytes())?;
+        written += out.write(&self.offset.to_be_bytes())?;
+        written += out.write(&self.num_items.to_be_bytes())?;
+        assert_eq!(16, written, "there should be 16 bytes written");
+        Ok(())
+    }
 }
 
 impl Header<IndexSignatureTag> {
@@ -218,6 +236,16 @@ impl Header<IndexSignatureTag> {
             input.read_exact(&mut discard)?;
         }
         Ok(result)
+    }
+
+    pub(crate) fn write_signature<W: std::io::Write>(&self, out: &mut W) -> Result<(), RPMError> {
+        self.write(out)?;
+        let modulo = self.index_header.header_size % 8;
+        if modulo > 0 {
+            let expansion = vec![0; 8 - modulo as usize];
+            out.write_all(&expansion)?;
+        }
+        Ok(())
     }
 }
 

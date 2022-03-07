@@ -33,6 +33,7 @@ use xz::read::{XzEncoder, XzDecoder};
 use tar::Archive;
 use bzip2::Compression;
 use bzip2::read::{BzEncoder, BzDecoder};
+use zstd::decode_all;
 
 extern crate clap;
 
@@ -108,8 +109,8 @@ fn main() -> io::Result<()> {
                             } else if s == "zstd" {
                                 out_file = File::create("out.cpio.zst")?;
                                 out_file.write_all(buf_reader.fill_buf().unwrap())?;
-                                let tar_gz = File::open("out.cpio.zst")?;
-                                let mut tar_f = decode_all(tar_gz)?;
+                                let tar_zst = File::open("out.cpio.zst")?;
+                                let mut tar_f = decode_all(tar_zst)?;
                                 let mut file = File::create("out.cpio")?;
                                 file.write_all(&tar_f);
                             } else if s == "bzip2" {
@@ -132,7 +133,6 @@ fn main() -> io::Result<()> {
                     }
                 }
             }
-            println!("hey");
             let cpio = fs::read("out.cpio").unwrap();
 
             for entry in cpio_reader::iter_files(&cpio) {
@@ -145,7 +145,6 @@ fn main() -> io::Result<()> {
                 let mut f = File::create(p)?;
                 f.write_all(entry.file());
             }
-            println!("hey");
         }
         Some(("build", _sub_matches)) => {
             let yaml_path = _sub_matches.value_of("PATH");

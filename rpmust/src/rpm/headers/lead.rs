@@ -102,6 +102,19 @@ impl Lead {
             reserved: rest.try_into().unwrap(),
         })
     }
+
+    pub(crate) fn write<W: std::io::Write>(&self, out: &mut W) -> Result<(), RPMError> {
+        out.write_all(&self.magic)?;
+        out.write_all(&self.major.to_be_bytes())?;
+        out.write_all(&self.minor.to_be_bytes())?;
+        out.write_all(&self.package_type.to_be_bytes())?;
+        out.write_all(&self.arch.to_be_bytes())?;
+        out.write_all(&self.name)?;
+        out.write_all(&self.os.to_be_bytes())?;
+        out.write_all(&self.signature_type.to_be_bytes())?;
+        out.write_all(&self.reserved)?;
+        Ok(())
+    }
 }
 
 /// impl the serialize and deserialize for [T; 66] 

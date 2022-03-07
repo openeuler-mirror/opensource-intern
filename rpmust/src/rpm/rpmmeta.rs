@@ -20,4 +20,11 @@ impl RPMPackageMetadata {
             header,
         })
     }
+
+    pub(crate) fn write<W: std::io::Write>(&self, out: &mut W) -> Result<(), RPMError> {
+        self.lead.write(out)?;
+        self.signature.write_signature(out)?;
+        self.header.write(out)?;
+        Ok(())
+    }
 }
