@@ -2,20 +2,30 @@ dagrs:
   a:
     name: "任务1"
     rely: [b, c]
-    run: "1"
+    run:
+      type: sh
+      script: echo x
   b:
     name: "任务2"
     rely: [c]
-    run: "2"
+    run:
+      type: sh
+      script: echo x
   c:
     name: "任务3"
     rely: [d]
-    run: "3"
+    run:
+      type: sh
+      script: echo x
   d:
     name: "任务4"
     rely: [e]
-    run: "4"
+    run:
+      type: sh
+      script: echo x
   e:
     name: "任务5"
     rely: [c]
-    run: "4"
+    run:
+      type: sh
+      script: echo x

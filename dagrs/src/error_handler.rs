@@ -21,8 +21,8 @@ pub enum FormatError {
     StartWordError,
     /// A task have no name filed, `String` points out task's id.
     NoName(String),
-    /// No run scripts
-    NoRunScript(String),
+    /// Run field format error
+    RunScriptError(String)
 }
 
 #[derive(Debug, PartialEq, Eq)]
@@ -46,7 +46,7 @@ impl Display for FormatError {
         match self {
             Self::StartWordError => write!(f, "YAML file not start with 'dagrs:'"),
             Self::NoName(id) => write!(f, "Task[ID:{}] name not found", id),
-            Self::NoRunScript(id) => write!(f, "Task[ID:{}] run script not found", id),
+            Self::RunScriptError(id) => write!(f, "Task[ID:{}] run script format error", id),
         }
     }
 }

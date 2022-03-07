@@ -2,7 +2,11 @@ dagrs:
   a:
     # no name
     rely: [b]
-    run: "echo 123"
+    run:
+      type: sh
+      script: echo x
   b:
     name: "任务2"
-    run: "echo 456"
+    run:
+      type: sh
+      script: echo x

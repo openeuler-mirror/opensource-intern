@@ -1,17 +1,84 @@
 //! Task Implementations, used to store task infos
 
 use crate::error_handler::{DagError, FormatError, InnerError};
+use deno_core::{JsRuntime, RuntimeOptions};
 use lazy_static::lazy_static;
 use std::process::Command;
 use std::sync::Mutex;
 use std::{collections::HashMap, fs::File, io::Read};
 use yaml_rust::{Yaml, YamlLoader};
 
+#[derive(Debug)]
+pub struct RunScript {
+    script: String,
+    executor: RunType,
+}
+
+#[derive(Debug)]
+pub enum RunType {
+    SH,
+    DENO,
+}
+
+pub struct Retval {
+    pub success: bool,
+    pub value: String,
+}
+
+impl RunScript {
+    pub fn new(script: &str, executor: RunType) -> Self {
+        Self {
+            script: script.to_owned(),
+            executor,
+        }
+    }
+
+    pub fn exec(&self) -> Retval {
+        match self.executor {
+            RunType::SH => self.run_sh(),
+            RunType::DENO => self.run_deno(),
+        }
+    }
+
+    fn run_sh(&self) -> Retval {
+        let output = Command::new("sh")
+            .arg("-c")
+            .arg(&self.script)
+            .output()
+            .unwrap();
+        // Reprint result
+        print!("{}", String::from_utf8(output.stdout).unwrap());
+
+        Retval {
+            success: output.status.success(),
+            value: "".into(),
+        }
+    }
+
+    fn run_deno(&self) -> Retval {
+        let output = JsRuntime::new(RuntimeOptions {
+            ..Default::default()
+        })
+        .execute_script("", &self.script);
+
+        match output {
+            Ok(val) => Retval {
+                success: true,
+                value: format!("{:?}", val),
+            },
+            Err(e) => Retval {
+                success: false,
+                value: format!("{}", e),
+            },
+        }
+    }
+}
+
 /// Task Trait.
 ///
 /// Any struct implements this trait can be added into dagrs.
 pub trait TaskTrait {
-    fn run(&self);
+    fn run(&self) -> Option<Retval>;
 }
 
 /// Wrapper for task that impl [`TaskTrait`].
@@ -83,7 +150,7 @@ impl TaskWrapper {
         self.name.to_owned()
     }
 
-    pub fn run(&self) {
+    pub fn run(&self) -> Option<Retval> {
         self.inner.run()
     }
 }
@@ -110,7 +177,7 @@ lazy_static! {
 /// Task Struct for YAML file.
 struct YamlTaskInner {
     /// Running Script
-    run: String,
+    run: RunScript,
 }
 
 /// Task struct for YAML file.
@@ -129,14 +196,8 @@ pub struct YamlTask {
 }
 
 impl TaskTrait for YamlTaskInner {
-    fn run(&self) {
-        let output = Command::new("bash")
-            .arg("-c")
-            .arg(self.run.clone())
-            .output()
-            .unwrap();
-        println!("Exec stdout: {}", String::from_utf8(output.stdout).unwrap());
-        println!("Exec stderr: {}", String::from_utf8(output.stderr).unwrap());
+    fn run(&self) -> Option<Retval> {
+        Some(self.run.exec())
     }
 }
 
@@ -166,12 +227,26 @@ impl YamlTask {
             .to_owned();
 
         // Get run script
-        let run = info["run"]
-            .as_str()
-            .ok_or(DagError::format_error(FormatError::NoRunScript(
-                id.to_owned(),
-            )))?
-            .to_owned();
+        let run = &info["run"];
+
+        let executor = match run["type"].as_str().ok_or(DagError::format_error(
+            FormatError::RunScriptError(id.into()),
+        ))? {
+            "sh" => RunType::SH,
+            "deno" => RunType::DENO,
+            _ => {
+                return Err(DagError::format_error(FormatError::RunScriptError(
+                    id.into(),
+                )))
+            }
+        };
+
+        let run_script =
+            run["script"]
+                .as_str()
+                .ok_or(DagError::format_error(FormatError::RunScriptError(
+                    id.into(),
+                )))?;
 
         // relys can be empty
         let mut relys = Vec::new();
@@ -182,7 +257,9 @@ impl YamlTask {
                 .count();
         }
 
-        let inner = YamlTaskInner { run };
+        let inner = YamlTaskInner {
+            run: RunScript::new(run_script, executor),
+        };
 
         Ok(YamlTask {
             yaml_id: id.to_string(),
