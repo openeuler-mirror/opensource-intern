@@ -41,12 +41,6 @@ use clap::{Arg, App, arg};
 
 pub mod rpm;
 
-struct CompressFormat {
-    gz: GzDecoder<File>,
-    xz: XzDecoder<File>,
-
-}
-
 fn main() -> io::Result<()> {
     let matches = App::new("rpmust")
         .version("0.1.0")
@@ -78,17 +72,22 @@ fn main() -> io::Result<()> {
             let rpm = rpmmeta.unwrap();
 
             // output the RPMPackageMetadata.yaml
+            println!("Generate the yaml file!");
             let s = serde_yaml::to_string(&rpm).unwrap();
             let mut buffer = File::create("RPMPackageMetadata.yaml").unwrap();
             buffer.write_all(s.as_bytes())?;
+            println!("Yaml file generated");
 
             let mut out_file:File;
 
+            // Traverse index entries to find RPMTAG_PAYLOADCOMPRESSOR 
+            // RPMTAG_PAYLOADCOMPRESSOR shows the compress type
             for i in 0..rpm.header.index_entries.len() {
                 if rpm.header.index_entries[i].tag == IndexTag::RPMTAG_PAYLOADCOMPRESSOR {
                     match &rpm.header.index_entries[i].data {
                         IndexData::StringTag(s) => {
                             if s == "xz" || s == "lzma" {
+                                println!("Extract out.cpio.xz from rpm file");
                                 out_file = File::create("out.cpio.xz")?;
                                 out_file.write_all(buf_reader.fill_buf().unwrap())?;
                                 let tar_xz = File::open("out.cpio.xz")?;
@@ -98,6 +97,7 @@ fn main() -> io::Result<()> {
                                 let mut file = File::create("out.cpio")?;
                                 file.write_all(&buf);
                             } else if s == "gzip" {
+                                println!("Extract out.cpio.gz from rpm file");
                                 out_file = File::create("out.cpio.gz")?;
                                 out_file.write_all(buf_reader.fill_buf().unwrap())?;
                                 let tar_gz = File::open("out.cpio.gz")?;
@@ -107,6 +107,7 @@ fn main() -> io::Result<()> {
                                 let mut file = File::create("out.cpio")?;
                                 file.write_all(&buf);
                             } else if s == "zstd" {
+                                println!("Extract out.cpio.zst from rpm file");
                                 out_file = File::create("out.cpio.zst")?;
                                 out_file.write_all(buf_reader.fill_buf().unwrap())?;
                                 let tar_zst = File::open("out.cpio.zst")?;
@@ -114,6 +115,7 @@ fn main() -> io::Result<()> {
                                 let mut file = File::create("out.cpio")?;
                                 file.write_all(&tar_f);
                             } else if s == "bzip2" {
+                                println!("Extract out.cpio.bz2 from rpm file");
                                 out_file = File::create("out.cpio.bz2")?;
                                 out_file.write_all(buf_reader.fill_buf().unwrap())?;
                                 let tar_bz2 = File::open("out.cpio.bz2")?;
@@ -123,6 +125,7 @@ fn main() -> io::Result<()> {
                                 let mut file = File::create("out.cpio")?;
                                 file.write_all(&buf);
                             } else {
+                                println!("Extract out.cpio from rpm file");
                                 out_file = File::create("out.cpio")?;
                                 out_file.write_all(buf_reader.fill_buf().unwrap())?;
                             }
@@ -133,10 +136,11 @@ fn main() -> io::Result<()> {
                     }
                 }
             }
+            println!("Decompress the out.cpio");
             let cpio = fs::read("out.cpio").unwrap();
 
             for entry in cpio_reader::iter_files(&cpio) {
-                println!("Entry name: {}", entry.name());
+                println!("\x1b[93mFile name:\x1b[0m {}",entry.name());
                 let mut p = &entry.name()[2..entry.name().len()];
                 let p = &("./out/".to_owned() + p);
                 let path = std::path::Path::new(p);
@@ -150,10 +154,37 @@ fn main() -> io::Result<()> {
             let yaml_path = _sub_matches.value_of("PATH");
             let mut file = std::fs::File::open(yaml_path.unwrap()).unwrap();
             let mut yaml_str = String::new();
-            file.read_to_string(&mut yaml_str).unwrap();
+            file.read_to_string(&mut yaml_str).expect("Input the yaml file path");
             let rpm: RPMPackageMetadata = serde_yaml::from_str(&yaml_str).expect("yaml read failed!");
-            println!("{:#?}",rpm.signature.index_entries);
-            println!("{:#?}",rpm.header.index_entries);
+
+            println!("Building the out.rpm");
+            let mut file = File::create("out.rpm")?;
+            rpm.write(&mut file);
+            
+            let mut cpio_file = Vec::new();
+            for i in 0..rpm.header.index_entries.len() {
+                if rpm.header.index_entries[i].tag == IndexTag::RPMTAG_PAYLOADCOMPRESSOR {
+                    match &rpm.header.index_entries[i].data {
+                        IndexData::StringTag(s) => {
+                            if s == "xz" || s == "lzma" {
+                                cpio_file = fs::read("out.cpio.xz")?;
+                            } else if s == "gzip" {
+                                cpio_file = fs::read("out.cpio.gz")?;
+                            } else if s == "zstd" {
+                                cpio_file = fs::read("out.cpio.zst")?;
+                            } else if s == "bzip2" {
+                                cpio_file = fs::read("out.cpio.bz2")?;
+                            } else {
+                                cpio_file = fs::read("out.cpio")?;
+                            }
+                        },
+                        _ => {
+
+                        }
+                    }
+                }
+            }
+            file.write_all(&cpio_file);
         }
         _ => {},
     }

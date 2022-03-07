@@ -165,6 +165,15 @@ impl IndexHeader {
             header_size,
         })
     }
+
+    pub(crate) fn write<W: std::io::Write>(&self, out: &mut W) -> Result<(), RPMError> {
+        out.write_all(&self.magic)?;
+        out.write_all(&self.version.to_be_bytes())?;
+        out.write_all(&[0; 4])?;
+        out.write_all(&self.num_entries.to_be_bytes())?;
+        out.write_all(&self.header_size.to_be_bytes())?;
+        Ok(())
+    }
 }
 
 #[derive(Debug, PartialEq, Serialize, Deserialize)]
