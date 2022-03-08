@@ -146,55 +146,18 @@ fn main() -> io::Result<()> {
             let cpio = fs::read("out.cpio").unwrap();
 
             for entry in cpio_reader::iter_files(&cpio) {
-                println!("\x1b[93mFile name:\x1b[0m {}",entry.name());
                 let mut p = &entry.name()[2..entry.name().len()];
                 let p = &("./out/".to_owned() + p);
                 let path = std::path::Path::new(p);
+                println!("\x1b[93mFile name:\x1b[0m {}",path.display());
                 let prefix = path.parent().unwrap();
-                if !prefix.exists() {
+                if !path.exists() {
+
                     std::fs::create_dir_all(prefix).unwrap();
-                }
-                if !prefix.exists() {
                     let mut f = File::create(p)?;
                     f.write_all(entry.file());
                 }
             }
-        }
-        Some(("build", _sub_matches)) => {
-            let yaml_path = _sub_matches.value_of("PATH");
-            let mut file = std::fs::File::open(yaml_path.unwrap()).unwrap();
-            let mut yaml_str = String::new();
-            file.read_to_string(&mut yaml_str).expect("Input the yaml file path");
-            let rpm: RPMPackageMetadata = serde_yaml::from_str(&yaml_str).expect("yaml read failed!");
-
-            println!("Building the out.rpm");
-            let mut file = File::create("out.rpm")?;
-            rpm.write(&mut file);
-            
-            let mut cpio_file = Vec::new();
-            for i in 0..rpm.header.index_entries.len() {
-                if rpm.header.index_entries[i].tag == IndexTag::RPMTAG_PAYLOADCOMPRESSOR {
-                    match &rpm.header.index_entries[i].data {
-                        IndexData::StringTag(s) => {
-                            if s == "xz" || s == "lzma" {
-                                cpio_file = fs::read("out.cpio.xz")?;
-                            } else if s == "gzip" {
-                                cpio_file = fs::read("out.cpio.gz")?;
-                            } else if s == "zstd" {
-                                cpio_file = fs::read("out.cpio.zst")?;
-                            } else if s == "bzip2" {
-                                cpio_file = fs::read("out.cpio.bz2")?;
-                            } else {
-                                cpio_file = fs::read("out.cpio")?;
-                            }
-                        },
-                        _ => {
-
-                        }
-                    }
-                }
-            }
-            file.write_all(&cpio_file);
         }
         Some(("build", _sub_matches)) => {
             let yaml_path = _sub_matches.value_of("PATH");

@@ -1,0 +1,44 @@
+From 39611db20eea29a751162c43f0df61b05f48b00f Mon Sep 17 00:00:00 2001
+From: Rainer Jung <rjung@apache.org>
+Date: Wed, 17 Jul 2019 11:42:15 +0000
+Subject: [PATCH 03/10] Pool debugging fixes
+
+- avoid using a destroyed mutex in apr_pool_clear()
+- if we create a sub-pool, we don't need to own the pool.
+
+Backport of r1481186 from trunk resp. r1863200 from 1.7.x.
+
+
+git-svn-id: https://svn.apache.org/repos/asf/apr/apr/branches/1.6.x@1863209 13f79535-47bb-0310-9956-ffa450edef68
+---
+ memory/unix/apr_pools.c | 7 ++++++-
+ 1 file changed, 6 insertions(+), 1 deletion(-)
+
+diff --git a/memory/unix/apr_pools.c b/memory/unix/apr_pools.c
+index 614919ede..cd6b17811 100644
+--- a/memory/unix/apr_pools.c
++++ b/memory/unix/apr_pools.c
+@@ -1909,6 +1909,11 @@ APR_DECLARE(void) apr_pool_clear_debug(apr_pool_t *pool,
+      * the mutex we obtained above.
+      */
+     if (mutex != pool->mutex) {
++        /*
++         * Prevent apr_palloc() in apr_thread_mutex_create() from trying to
++         * use the destroyed mutex.
++         */
++        pool->mutex = NULL;
+         (void)apr_thread_mutex_create(&pool->mutex,
+                                       APR_THREAD_MUTEX_NESTED, pool);
+ 
+@@ -1985,7 +1990,7 @@ APR_DECLARE(apr_status_t) apr_pool_create_ex_debug(apr_pool_t **newpool,
+         parent = global_pool;
+     }
+     else {
+-       apr_pool_check_integrity(parent);
++       apr_pool_check_lifetime(parent);
+ 
+        if (!allocator)
+            allocator = parent->allocator;
+-- 
+2.19.1
+
