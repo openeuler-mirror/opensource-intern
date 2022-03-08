@@ -16,7 +16,7 @@ Cargo.lock
 
 /target
 #**/*.rs.bk
-example.log
+dagrs.log
 
 # IDE
 .idea

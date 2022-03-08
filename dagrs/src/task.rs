@@ -8,24 +8,35 @@ use std::sync::Mutex;
 use std::{collections::HashMap, fs::File, io::Read};
 use yaml_rust::{Yaml, YamlLoader};
 
+
+/// Can be used to run a script cmd or file.
 #[derive(Debug)]
 pub struct RunScript {
     script: String,
     executor: RunType,
 }
 
+/// Run script type, now a script can be run in `sh` or embeded `deno`
 #[derive(Debug)]
 pub enum RunType {
     SH,
     DENO,
 }
 
+/// Return value for task, not supported now.
 pub struct Retval {
     pub success: bool,
     pub value: String,
 }
 
 impl RunScript {
+    /// Generate a new run script
+    /// 
+    /// # Example
+    /// ```
+    /// let r = RunScript::new("echo Hello!", RunType::SH);
+    /// r.exec();
+    /// ```
     pub fn new(script: &str, executor: RunType) -> Self {
         Self {
             script: script.to_owned(),
@@ -33,6 +44,13 @@ impl RunScript {
         }
     }
 
+    /// Execute the script.
+    /// 
+    /// # Example
+    /// ```
+    /// let r = RunScript::new("echo Hello!", RunType::SH);
+    /// r.exec();
+    /// ```
     pub fn exec(&self) -> Retval {
         match self.executor {
             RunType::SH => self.run_sh(),
@@ -170,6 +188,7 @@ impl IDAllocator {
 }
 
 lazy_static! {
+    /// Instance of IDAllocator
     static ref ID_ALLOCATOR: Mutex<IDAllocator> = Mutex::new(IDAllocator { id: 0 });
 }
 
