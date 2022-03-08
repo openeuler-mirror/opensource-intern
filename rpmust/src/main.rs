@@ -11,6 +11,7 @@ OPTIONS:
 SUBCOMMANDS:
     build     merge the RPMPackageMetadata.yaml and out.cpio to a rpm file
     decode    turn the rpm file to RPMPackageMetadata.yaml and out.cpio
+    clean     clean the output file
     help      Print this message or the help of the given subcommand(s)
 
 例如：
