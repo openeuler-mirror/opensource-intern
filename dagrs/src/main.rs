@@ -1,3 +1,4 @@
+#![doc = include_str!("../README.md")]
 extern crate bimap;
 extern crate clap;
 extern crate deno_core;
@@ -12,13 +13,14 @@ mod error_handler;
 mod graph;
 mod task;
 
-use std::fs::File;
+use std::{
+    env,
+    fs::{create_dir, File},
+};
 
 use clap::Parser;
 use dag_engine::DagEngine;
 use simplelog::*;
-
-use crate::task::Retval;
 
 #[derive(Parser)]
 #[clap(version)]
@@ -35,21 +37,35 @@ struct Args {
 fn main() {
     let args = Args::parse();
     let mut dagrs: DagEngine = DagEngine::new();
-    let log_path = if let Some(s) = args.logpath {
-        s
-    } else {
-        "./example.log".to_owned()
-    };
 
-    init_logger(&log_path);
+    init_logger(args.logpath.as_deref());
 
     if let Err(e) = dagrs.run_from_yaml(&args.filepath) {
         error!("[Error] {}", e);
     }
 }
 
-/// Get a new logger, which will store logs into given path.
-fn init_logger(path: &str) {
+/// Initialize a logger, and set it's path.
+/// 
+/// # Example
+/// ```
+/// init_logger(Some("test/dagrs.log")); // set path mannully
+/// // or
+/// init_logger(None); // use default path ($HOME/.dagrs/dagrs.log)
+/// ```
+/// **Note:** path must exists.
+pub fn init_logger(path: Option<&str>) {
+    let log_path = if let Some(s) = path {
+        s.to_owned()
+    } else {
+        if let Ok(home) = env::var("HOME") {
+            create_dir(format!("{}/.dagrs", home)).unwrap_or(());
+            format!("{}/.dagrs/dagrs.log", home)
+        } else {
+            "./dagrs.log".to_owned()
+        }
+    };
+
     CombinedLogger::init(vec![
         TermLogger::new(
             LevelFilter::Info,
@@ -60,7 +76,7 @@ fn init_logger(path: &str) {
         WriteLogger::new(
             LevelFilter::Info,
             Config::default(),
-            File::create(path).unwrap(),
+            File::create(log_path).unwrap(),
         ),
     ])
     .unwrap();
@@ -68,7 +84,9 @@ fn init_logger(path: &str) {
 
 #[test]
 fn test_runscript() {
-    let res = DagEngine::new().run_from_yaml("test/test_dag1.yaml").unwrap();
+    let res = DagEngine::new()
+        .run_from_yaml("test/test_dag1.yaml")
+        .unwrap();
     assert_eq!(res, true)
 }
 
@@ -79,7 +97,6 @@ fn test_dag() {
         .unwrap();
     assert_eq!(res, true)
 }
-
 
 #[test]
 fn test_loop() {
@@ -143,7 +160,7 @@ fn test_no_runscript() {
 
 #[test]
 fn test_prom1() {
-    use crate::task::{TaskTrait, TaskWrapper};
+    use crate::task::{Retval, TaskTrait, TaskWrapper};
     struct T1 {}
     impl TaskTrait for T1 {
         fn run(&self) -> Option<Retval> {
@@ -177,7 +194,7 @@ fn test_prom1() {
 
 #[test]
 fn test_prom2() {
-    use crate::task::{RunScript, RunType, TaskTrait, TaskWrapper};
+    use crate::task::{Retval, RunScript, RunType, TaskTrait, TaskWrapper};
     struct T {
         run_script: RunScript,
     }
