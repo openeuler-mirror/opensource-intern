@@ -34,6 +34,8 @@ use tar::Archive;
 use bzip2::Compression;
 use bzip2::read::{BzEncoder, BzDecoder};
 use zstd::decode_all;
+use glob::glob;
+
 
 extern crate clap;
 
@@ -54,6 +56,10 @@ fn main() -> io::Result<()> {
             App::new("build")
                 .about("merge the RPMPackageMetadata.yaml and out.cpio to a rpm file")
                 .arg(arg!(<PATH> ... "The path of RPMPackageMetadata.yaml"))
+        )
+        .subcommand(
+            App::new("clean")
+                .about("delete the output file")
         )
         .get_matches();
 
@@ -145,9 +151,13 @@ fn main() -> io::Result<()> {
                 let p = &("./out/".to_owned() + p);
                 let path = std::path::Path::new(p);
                 let prefix = path.parent().unwrap();
-                std::fs::create_dir_all(prefix).unwrap();
-                let mut f = File::create(p)?;
-                f.write_all(entry.file());
+                if !prefix.exists() {
+                    std::fs::create_dir_all(prefix).unwrap();
+                }
+                if !prefix.exists() {
+                    let mut f = File::create(p)?;
+                    f.write_all(entry.file());
+                }
             }
         }
         Some(("build", _sub_matches)) => {
@@ -185,6 +195,76 @@ fn main() -> io::Result<()> {
                 }
             }
             file.write_all(&cpio_file);
+        }
+        Some(("build", _sub_matches)) => {
+            let yaml_path = _sub_matches.value_of("PATH");
+            let mut file = std::fs::File::open(yaml_path.unwrap()).unwrap();
+            let mut yaml_str = String::new();
+            file.read_to_string(&mut yaml_str).expect("Input the yaml file path");
+            let rpm: RPMPackageMetadata = serde_yaml::from_str(&yaml_str).expect("yaml read failed!");
+
+            println!("Building the out.rpm");
+            let mut file = File::create("out.rpm")?;
+            rpm.write(&mut file);
+            
+            let mut cpio_file = Vec::new();
+            for i in 0..rpm.header.index_entries.len() {
+                if rpm.header.index_entries[i].tag == IndexTag::RPMTAG_PAYLOADCOMPRESSOR {
+                    match &rpm.header.index_entries[i].data {
+                        IndexData::StringTag(s) => {
+                            if s == "xz" || s == "lzma" {
+                                cpio_file = fs::read("out.cpio.xz")?;
+                            } else if s == "gzip" {
+                                cpio_file = fs::read("out.cpio.gz")?;
+                            } else if s == "zstd" {
+                                cpio_file = fs::read("out.cpio.zst")?;
+                            } else if s == "bzip2" {
+                                cpio_file = fs::read("out.cpio.bz2")?;
+                            } else {
+                                cpio_file = fs::read("out.cpio")?;
+                            }
+                        },
+                        _ => {
+
+                        }
+                    }
+                }
+            }
+            file.write_all(&cpio_file);
+        }
+        Some(("clean", _sub_matches)) => {
+            let mut is = true;
+            let out_dir_path = std::path::Path::new("./out");
+            if out_dir_path.exists() {
+                fs::remove_dir_all("./out");
+                println!("\x1b[93mRemoving dir out\x1b[0m");
+                is = false;
+            }
+
+            for path in glob("./*.yaml").unwrap() {
+                match path {
+                    Ok(path) => {
+                        println!("\x1b[93mRemoving file:\x1b[0m {:?}", path.display());
+                        std::fs::remove_file(path);
+                        is = false;
+                    },
+                    Err(e) => println!("{:?}", e)
+                }
+            }
+
+            for path in glob("./out*").unwrap() {
+                match path {
+                    Ok(path) => {
+                        println!("\x1b[93mRemoving file:\x1b[0m {:?}", path.display());
+                        std::fs::remove_file(path);
+                        is = false;
+                    },
+                    Err(e) => println!("{:?}", e)
+                }
+            }
+            if is {
+                println!("nothing removed");
+            }
         }
         _ => {},
     }
