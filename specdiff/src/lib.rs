@@ -49,19 +49,11 @@ pub struct Address{
 
 /// 使用 rust 编写的简易 spec 文件比较程序，支持 toml 格式的配置文件输入。
 /// 允许在控制台输出以及生成 diff 报告，输出报告格式为 markdown。
-/// toml 配置文件示例如下，多组软件对比放在其他 [[addresses]] 下即可
-/// ```toml
-/// [[addresses]]
-/// name = "fpaste"  // 默认输出报告文件名 <name>-specdiff-<date>.md
-/// out_name = "fpaste_34" // 自定义输出文件名，可以为空
-/// x = "https://src.fedoraproject.org/rpms/fpaste/raw/rawhide/f/fpaste.spec"
-/// y = "https://src.fedoraproject.org/rpms/fpaste/raw/f34/f/fpaste.spec"
-/// ```
 #[derive(Parser)]
 #[clap(version = "0.2.0", author = "Ke Lei <Ke_lei@foxmail.com>")]
 pub struct Cli {
     /// 一个 .toml 格式的配置文件的路径, 文件中需要有至少一个 [[addresses]] 配置项, 其中包括软件名字 name, 输出报告名称 out_name (可不填), 软件不同的spec文件地址 x 和 y (都是 String 类型)
-    pub path_config: String,
+    pub config_path: String,
     /// specdiff 输出的对比报告存放的路径, 默认为当前目录.
     #[clap(short, long)]
     pub report_out_path: Option<String>,
@@ -75,7 +67,7 @@ pub struct Cli {
 
 impl Cli {
     pub async fn get_address_list_from_cli() -> Result<Vec<Address>, SpecError> {
-        let path = Cli::parse().path_config;
+        let path = Cli::parse().config_path;
         get_address_list(&path)
     }
 
