@@ -6,9 +6,9 @@ use reqwest::Response;
 use similar::{ChangeTag, TextDiff};
 use markdown_gen::markdown::Markdown;
 use console::{style, Style};
-pub use tokio::try_join;
+use tokio::try_join;
 use serde::Deserialize;
-pub use chrono::prelude::*;
+use chrono::prelude::*;
 use toml;
 
 pub use std::{
@@ -21,6 +21,8 @@ pub use std::{
 mod error;
 pub use error::SpecError;
 
+/// 方便 console::style 调用
+/// 使用方法来源于 https://github.com/mitsuhiko/similar/blob/main/examples/terminal-inline.rs
 struct Line(Option<usize>);
 
 impl fmt::Display for Line {
@@ -95,7 +97,7 @@ fn get_address_list(path: &str) -> Result<Vec<Address>, SpecError> {
     Ok(config.addresses.unwrap())
 }
 
-
+#[allow(unused)]
 /// 获得 diff 内容，并通过参数决定是否输出相应内容到控制台
 pub async fn get_diff_from_address(
     address: Address, 
@@ -106,7 +108,6 @@ pub async fn get_diff_from_address(
     writer: &mut dyn Write,
 ) -> Result<(), SpecError> {
     let dt = Local::now();
-
     let spec_list = match download_specs(&address, &spec_save_path).await {
         Err(e) => {
             panic!("Internal error: {:?}", e);
@@ -128,41 +129,42 @@ pub async fn get_diff_from_address(
         }
     }
     let file = File::create(&report_name).expect("create failed");
-    let mut mdfile = Markdown::new(file);
     let diff = TextDiff::from_lines(&spec_list[0], &spec_list[1]);
-    let diff_ratio = diff.ratio();
-    diff_ratio_list.push(diff_ratio);
 
-    // let res: String = diff
-    //     .grouped_ops(3)
-    //     .iter()
-    //     .map(|group| {
-    //         group.iter().map(|op| {
-    //             diff.iter_inline_changes(op)
-    //                 .map(|change| {
-    //                     format_line(change)
-    //                 })
-                    
-    //         }).flatten()
-    //     })
-
-    //     .join("\n");
-
-    for group in diff.grouped_ops(3).iter(){
-        for op in group {
-            for change in diff.iter_inline_changes(op) {
-                let line = format_line(change);
-                // let mut line = format!("{:<4}|{}",  Line(change.old_index()), sign);
-                mdfile.write(&line[..])?;
-                if !*out_terminal{
-                    break;
+    // 默认写入 markdown 文件
+    diff.unified_diff().to_writer(&file).expect("write markdown false");
+    Markdown::new(file);
+    if let true = *out_terminal {
+        for group in diff.grouped_ops(3).iter(){
+            for op in group {
+                for change in diff.iter_inline_changes(op) {
+                    let (sign, s) = match change.tag() {
+                        ChangeTag::Delete => ("-", Style::new().red()),
+                        ChangeTag::Insert => ("+", Style::new().green()),
+                        ChangeTag::Equal => (" ", Style::new().dim()),
+                    };
+                    print!(
+                        "{}{} |{}",
+                        style(Line(change.old_index())).dim(),
+                        style(Line(change.new_index())).dim(),
+                        s.apply_to(sign).bold(),
+                    );
+                    for (emphasized, value) in change.iter_strings_lossy() {
+                        if emphasized {
+                            print!("{}", s.apply_to(value).underlined().on_black());
+                        } else {
+                            print!("{}", s.apply_to(value));
+                        }
+                    }
+                    if change.missing_newline() {
+                        println!();
+                    }
                 }
-
-                writer.write_all(line.as_bytes())?;
-                writer.write_all(b"\n")?;
             }
         }
-    };
+    }
+    let diff_ratio = diff.ratio();
+    diff_ratio_list.push(diff_ratio);
     println!("report written successfully in {}", report_name);
     println!("diff-ratio for {} is: {}", address.name, diff_ratio);
 
@@ -172,7 +174,7 @@ pub async fn get_diff_from_address(
 
 
 /// 下载一组 spec 文件，保存文件内容，并通过 Vec<String> 返回 spec 内容
-/// 默认下载保存目录在 /tmp/specdiff/<date>
+/// 默认下载保存目录在 /tmp/specdiff/download/
 /// [TODO] 下载进度条
 pub async fn download_specs(address: &Address, spec_save_path: &str) -> Result<Vec<String>, SpecError>{
     let f1 = reqwest::get(&address.x);
@@ -189,34 +191,6 @@ pub async fn download_specs(address: &Address, spec_save_path: &str) -> Result<V
 
 }
 
-/// 格式化输出 diff 行
-pub fn format_line(change: similar::InlineChange<str>) -> String {
-    let (sign, s) = match change.tag() {
-        ChangeTag::Delete => ("-", Style::new().red()),
-        ChangeTag::Insert => ("+", Style::new().green()),
-        ChangeTag::Equal => (" ", Style::new().dim()),
-    };
-
-    let mut line = format!(
-        "{}{} |{}",
-        style(Line(change.old_index())).dim(),
-        style(Line(change.new_index())).dim(),
-        s.apply_to(sign).bold(),
-    );
-
-    for (emphasized, value) in change.iter_strings_lossy() {
-        // let st = value.clone();
-        // line.push_str(&format!("{}",st));
-        let after = if emphasized {
-            format!("{}", s.apply_to(value).underlined().on_black())
-        } else {
-            format!("{}", s.apply_to(value).underlined())
-        };
-        line += &after[..];
-    }
-
-    line
-}
 
 #[cfg(test)]
 mod tests {
