@@ -56,77 +56,77 @@ test.toml
 ```toml
 [[addresses]]
 name = "openjdk-11"
-x = "https://gitee.com/src-openeuler/openjdk-11/raw/openEuler-22.03-LTS-LoongArch/openjdk-11.spec"
-y = "https://gitee.com/src-openeuler/openjdk-11/raw/master/openjdk-11.spec"
+x = "https://gitee.com/src-openeuler/openjdk-11/raw/master/openjdk-11.spec"
+y = "https://src.fedoraproject.org/rpms/java-11-openjdk/raw/rawhide/f/java-11-openjdk.spec"
 
 [[addresses]]
 name = "e2fsprogs"
 x = "https://gitee.com/src-openeuler/e2fsprogs/raw/master/e2fsprogs.spec"
-y = "https://gitee.com/src-openeuler/e2fsprogs/raw/openEuler-20.09/e2fsprogs.spec"
+y = "https://src.fedoraproject.org/rpms/e2fsprogs/raw/rawhide/f/e2fsprogs.spec"
 
 [[addresses]]
-name = "obs_meta "
-x = "https://gitee.com/src-openeuler/obs_meta/raw/master/master/openEuler:Mainline:Bak/openEuler-latest-release/openEuler-latest-release.spec"
-y = "https://gitee.com/src-openeuler/obs_meta/raw/revert-merge-1126-master/master/openEuler:Mainline:Bak/openEuler-latest-release/openEuler-latest-release.spec"
+name = "bluez "
+x = "https://gitee.com/src-openeuler/bluez/raw/master/bluez.spec"
+y = "https://src.fedoraproject.org/rpms/bluez/raw/rawhide/f/bluez.spec"
 
 [[addresses]]
-name = "docker"
-x = "https://gitee.com/src-openeuler/docker/raw/master/docker.spec"
-y = "https://gitee.com/src-openeuler/docker/raw/openEuler-22.03-LTS/docker.spec"
+name = "swtpm"
+x = "https://gitee.com/src-openeuler/swtpm/raw/master/swtpm.spec"
+y = "https://src.fedoraproject.org/rpms/swtpm/raw/rawhide/f/swtpm.spec"
 
 [[addresses]]
 name = "python-tomli"
 x = "https://gitee.com/src-openeuler/python-tomli/raw/master/python-tomli.spec"
-y = "https://gitee.com/src-openeuler/python-tomli/raw/sync-pr3-pr_2-to-openEuler-22.03-LTS/python-tomli.spec"
+y = "https://src.fedoraproject.org/rpms/python-tomli/raw/rawhide/f/python-tomli.spec"
 
 [[addresses]]
-name = "a2jmidid"
-x = "https://src.fedoraproject.org/rpms/a2jmidid/raw/rawhide/f/a2jmidid.spec"
-y = "https://src.fedoraproject.org/rpms/a2jmidid/raw/f23/f/a2jmidid.spec"
+name = "firebird"
+x = "https://gitee.com/src-openeuler/firebird/raw/master/firebird.spec"
+y = "https://src.fedoraproject.org/rpms/firebird/raw/rawhide/f/firebird.spec"
 
 [[addresses]]
-name = "qpwgraph"
-x = "https://src.fedoraproject.org/rpms/qpwgraph/raw/rawhide/f/qpwgraph.spec"
-y = "https://src.fedoraproject.org/rpms/qpwgraph/f34/rawhide/f/qpwgraph.spec"
+name = "anaconda"
+x = "https://gitee.com/src-openeuler/anaconda/raw/master/anaconda.spec"
+y = "https://src.fedoraproject.org/rpms/anaconda/raw/rawhide/f/anaconda.spec"
 
 [[addresses]]
-name = "c4log"
-x = "https://src.fedoraproject.org/rpms/c4log/raw/rawhide/f/c4log.spec"
-y = "https://src.fedoraproject.org/rpms/c4log/f34/rawhide/f/c4log.spec"
+name = "pango"
+x = "https://gitee.com/src-openeuler/pango/raw/master/pango.spec"
+y = "https://src.fedoraproject.org/rpms/pango/raw/rawhide/f/pango.spec"
 
 [[addresses]]
-name = "apptainer"
-x = "https://src.fedoraproject.org/rpms/apptainer/raw/rawhide/f/apptainer.spec"
-y = "https://src.fedoraproject.org/rpms/apptainer/f35/rawhide/f/apptainer.spec"
+name = "redland"
+x = "https://gitee.com/src-openeuler/redland/raw/master/redland.spec"
+y = "https://src.fedoraproject.org/rpms/redland/raw/rawhide/f/redland.spec"
 
 [[addresses]]
-name = "bitcoin-core-selinux"
-x = "https://src.fedoraproject.org/rpms/bitcoin-core-selinux/raw/rawhide/f/bitcoin-core-selinux.spec"
-y = "https://src.fedoraproject.org/rpms/bitcoin-core-selinux/f34/rawhide/f/bitcoin-core-selinux.spec"
+name = "glib2"
+x = "https://gitee.com/src-openeuler/glib2/raw/master/glib2.spec"
+y = "https://src.fedoraproject.org/rpms/glib2/raw/rawhide/f/glib2.spec"
 ```
 
 输出结果：
-```
-(base) ➜  release git:(master) ✗ ./specdiff -t false  test.toml    
-report written successfully in ./openjdk-11-specdiff-2022-03-10 17:27:30.md
-diff-ratio for openjdk-11 is: 0.9831144
-report written successfully in ./e2fsprogs-specdiff-2022-03-10 17:27:31.md
-diff-ratio for e2fsprogs is: 0.877551
-report written successfully in ./obs_meta -specdiff-2022-03-10 17:27:31.md
-diff-ratio for obs_meta  is: 1
-report written successfully in ./docker-specdiff-2022-03-10 17:27:32.md
-diff-ratio for docker is: 0.95555556
-report written successfully in ./python-tomli-specdiff-2022-03-10 17:27:32.md
-diff-ratio for python-tomli is: 1
-report written successfully in ./a2jmidid-specdiff-2022-03-10 17:27:33.md
-diff-ratio for a2jmidid is: 0.6576271
-report written successfully in ./qpwgraph-specdiff-2022-03-10 17:27:35.md
-diff-ratio for qpwgraph is: 0
-report written successfully in ./c4log-specdiff-2022-03-10 17:27:36.md
-diff-ratio for c4log is: 0
-report written successfully in ./apptainer-specdiff-2022-03-10 17:27:38.md
-diff-ratio for apptainer is: 0
-report written successfully in ./bitcoin-core-selinux-specdiff-2022-03-10 17:27:39.md
-diff-ratio for bitcoin-core-selinux is: 0
-The avg_ratio is: 0.5473848
+```bash
+(base) ➜  release git:(master) ./specdiff -t false -r ../tmp  test.toml
+report written successfully in ../tmp/openjdk-11-specdiff-2022-03-10 20:41:16.md
+diff-ratio for openjdk-11 is: 0.49667898
+report written successfully in ../tmp/e2fsprogs-specdiff-2022-03-10 20:41:19.md
+diff-ratio for e2fsprogs is: 0.10695971
+report written successfully in ../tmp/bluez -specdiff-2022-03-10 20:41:21.md
+diff-ratio for bluez  is: 0.109042555
+report written successfully in ../tmp/swtpm-specdiff-2022-03-10 20:41:23.md
+diff-ratio for swtpm is: 0.61728394
+report written successfully in ../tmp/python-tomli-specdiff-2022-03-10 20:41:24.md
+diff-ratio for python-tomli is: 0.5371429
+report written successfully in ../tmp/firebird-specdiff-2022-03-10 20:41:25.md
+diff-ratio for firebird is: 0.14468086
+report written successfully in ../tmp/anaconda-specdiff-2022-03-10 20:41:27.md
+diff-ratio for anaconda is: 0.04122439
+report written successfully in ../tmp/pango-specdiff-2022-03-10 20:41:30.md
+diff-ratio for pango is: 0.05135135
+report written successfully in ../tmp/redland-specdiff-2022-03-10 20:41:32.md
+diff-ratio for redland is: 0.21333334
+report written successfully in ../tmp/glib2-specdiff-2022-03-10 20:41:33.md
+diff-ratio for glib2 is: 0.2825279
+The avg_ratio is: 0.26002258
 ```
