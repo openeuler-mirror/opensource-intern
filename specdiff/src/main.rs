@@ -31,7 +31,7 @@ async fn main() -> Result<(), SpecError> {
     }
 
     let avg_ratio:f32 = diff_ratio_list.iter().sum::<f32>() / diff_ratio_list.len() as f32;
-    println!("The avg_ratio is: {}", avg_ratio);
+    println!("The avg_ratio is: {:.2}%", avg_ratio*100.0);
     
     Ok(())
 }
