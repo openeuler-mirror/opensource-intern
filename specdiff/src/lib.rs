@@ -158,7 +158,7 @@ pub async fn get_diff_from_address(
     let diff_ratio = diff.ratio();
     diff_ratio_list.push(diff_ratio);
     println!("report written successfully in {}", report_name);
-    println!("diff-ratio for {} is: {}", address.name, diff_ratio);
+    println!("diff-ratio for {} is: {:.2}%", address.name, diff_ratio*100.0);
 
     Ok(())
 }

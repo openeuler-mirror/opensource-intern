@@ -50,7 +50,7 @@ OPTIONS:
 ## 一个例子
 执行命令的实例：
 ```bash
-$ ./target/debug/specdiff -t false test.toml
+$ ./specdiff -t false -r ../tmp  test.toml
 ```
 test.toml
 ```toml
@@ -107,26 +107,26 @@ y = "https://src.fedoraproject.org/rpms/glib2/raw/rawhide/f/glib2.spec"
 
 输出结果：
 ```bash
-(base) ➜  release git:(master) ./specdiff -t false -r ../tmp  test.toml
-report written successfully in ../tmp/openjdk-11-specdiff-2022-03-10 20:41:16.md
-diff-ratio for openjdk-11 is: 0.49667898
-report written successfully in ../tmp/e2fsprogs-specdiff-2022-03-10 20:41:19.md
-diff-ratio for e2fsprogs is: 0.10695971
-report written successfully in ../tmp/bluez -specdiff-2022-03-10 20:41:21.md
-diff-ratio for bluez  is: 0.109042555
-report written successfully in ../tmp/swtpm-specdiff-2022-03-10 20:41:23.md
-diff-ratio for swtpm is: 0.61728394
-report written successfully in ../tmp/python-tomli-specdiff-2022-03-10 20:41:24.md
-diff-ratio for python-tomli is: 0.5371429
-report written successfully in ../tmp/firebird-specdiff-2022-03-10 20:41:25.md
-diff-ratio for firebird is: 0.14468086
-report written successfully in ../tmp/anaconda-specdiff-2022-03-10 20:41:27.md
-diff-ratio for anaconda is: 0.04122439
-report written successfully in ../tmp/pango-specdiff-2022-03-10 20:41:30.md
-diff-ratio for pango is: 0.05135135
-report written successfully in ../tmp/redland-specdiff-2022-03-10 20:41:32.md
-diff-ratio for redland is: 0.21333334
-report written successfully in ../tmp/glib2-specdiff-2022-03-10 20:41:33.md
-diff-ratio for glib2 is: 0.2825279
-The avg_ratio is: 0.26002258
+(base) ➜  release git:(master) ✗ ./specdiff -t false -r ../tmp  test.toml
+report written successfully in ../tmp/openjdk-11-specdiff-2022-03-10 21:24:38.md
+diff-ratio for openjdk-11 is: 49.67%
+report written successfully in ../tmp/e2fsprogs-specdiff-2022-03-10 21:24:40.md
+diff-ratio for e2fsprogs is: 10.70%
+report written successfully in ../tmp/bluez -specdiff-2022-03-10 21:24:42.md
+diff-ratio for bluez  is: 10.90%
+report written successfully in ../tmp/swtpm-specdiff-2022-03-10 21:24:44.md
+diff-ratio for swtpm is: 61.73%
+report written successfully in ../tmp/python-tomli-specdiff-2022-03-10 21:24:45.md
+diff-ratio for python-tomli is: 53.71%
+report written successfully in ../tmp/firebird-specdiff-2022-03-10 21:24:46.md
+diff-ratio for firebird is: 14.47%
+report written successfully in ../tmp/anaconda-specdiff-2022-03-10 21:24:48.md
+diff-ratio for anaconda is: 4.12%
+report written successfully in ../tmp/pango-specdiff-2022-03-10 21:24:51.md
+diff-ratio for pango is: 5.14%
+report written successfully in ../tmp/redland-specdiff-2022-03-10 21:24:53.md
+diff-ratio for redland is: 21.33%
+report written successfully in ../tmp/glib2-specdiff-2022-03-10 21:24:55.md
+diff-ratio for glib2 is: 28.25%
+The avg_ratio is: 26.00%
 ```
