@@ -69,8 +69,8 @@ export default {
         {
           btnName: this.$t("sidebar.maillist"),
           icoName: "ios-ionitron",
-          router: "/flow",
-          name: "flow"
+          router: "/maillist",
+          name: "maillist"
         },
       ];
     }

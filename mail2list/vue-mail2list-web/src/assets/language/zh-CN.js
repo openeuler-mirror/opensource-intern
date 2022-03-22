@@ -63,6 +63,7 @@ module.exports = {
         executorCores: "ExecutorCPU核数",
         email:"电子邮箱",
         name: "姓名",
+        username: "用户名",
         description: "描述信息",
         mailList: "邮箱列表",
         CreateTime: "创建时间",
