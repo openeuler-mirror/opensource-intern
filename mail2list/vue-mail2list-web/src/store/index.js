@@ -4,8 +4,8 @@ import variable from '../modules/variable'
 
 Vue.use(Vuex)
 const store = new Vuex.Store({
-  modules: {
-    variable,
-  }
+    modules: {
+        variable,
+    }
 });
 export default store;

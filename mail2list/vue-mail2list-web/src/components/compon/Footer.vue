@@ -94,7 +94,7 @@ export default {
           window.sessionStorage.setItem("menuName", 'flow');
           this.$router.push({
             name: 'flow',
-            path: "/flow",
+            path: "/maillist",
             // query: {
             //   src: "/drawingBoard/page/flow/mxGraph/index.html?load=" + row.id,
             // }

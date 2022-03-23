@@ -3,7 +3,6 @@ module.exports = {
     logOut: 'Log out',
     sidebar: {
         dashboard: "Dashboard",
-        flow: "flow",
         maillist:"mailList"
     },
     page: {
@@ -59,15 +58,14 @@ module.exports = {
     },
     maillist_columns: {
         create_title: "Subscribe MailingList",
-        update_title: "Update flow",
         mailList_name: "MailingListName",
-        driverMemory: "DriverMemory",
-        name: "Name",
-        email: "Email",
+        name: "name",
+        username: "username",
+        email: "email",
         description: "Description",
-        Archive:"Archive",
-        mailList: "MailList",
-        action: "Actions"
+        Archive:"archive",
+        mailList: "mailList",
+        action: "actions"
     },
     homeInfo: {
         introduction_title: "Introduction",

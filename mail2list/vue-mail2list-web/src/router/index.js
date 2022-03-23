@@ -31,7 +31,7 @@ export default new Router({
               component: () => import('../components/pages/index')
             },
             {
-              path: '/flow',
+              path: '/maillist',
               name: 'mailList',
               component: () => import('../components/pages/mailList')
             }
