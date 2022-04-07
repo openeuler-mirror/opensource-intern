@@ -1,8 +1,7 @@
 [package]
-name = "mail2list_web"
+name = "mail2list_archive_unsubscribe"
 version = "0.1.0"
 edition = "2021"
-author = "zhaorunqi<runqi@isrc.iscas.ac.cn>"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
@@ -57,3 +56,6 @@ percent-encoding = "2.1.0"
 rand = "0.7.3"
 imap = "3.0.0-alpha.6"
 mailparse = "0.13.8"
+lettre = "0.10.0-rc.5"
+lettre_email = "0.9"
+mime = "0.3.13"

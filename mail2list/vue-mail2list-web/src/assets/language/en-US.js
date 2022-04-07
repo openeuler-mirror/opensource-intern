@@ -50,6 +50,7 @@ module.exports = {
         placeholder: "please enter the content...",
         template_title: "Template name",
         ok_text: "Submit",
+        new_thread:"new thread",
         upload_text: "upload",
         confirm: "Confirm",
         cancel_text: "Cancel",
