@@ -26,11 +26,7 @@ async-std = "1.10"
 #static
 lazy_static = "1.4.0"
 
-#redis
-redis = { version = "0.21.5", features = ["async-std-comp"] }
 
-#captcha
-captcha = "0.0.8"
 #http client,use rust-tls replace to native tls
 reqwest = { version = "0.11", default-features = false, features = ["json", "rustls-tls","blocking"] }
 
@@ -57,3 +53,7 @@ log = "0.4"
 fast_log = { version="1.4", features = ["lz4","zip", "gzip"]}
 
 percent-encoding = "2.1.0"
+
+rand = "0.7.3"
+imap = "3.0.0-alpha.6"
+mailparse = "0.13.8"

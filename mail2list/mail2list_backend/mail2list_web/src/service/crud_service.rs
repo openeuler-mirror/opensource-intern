@@ -1,10 +1,8 @@
-use crate::entity::pagedata::PageData;
 use crate::entity::sys_entitys::CommonField;
 use crate::{RB, REQUEST_CONTEXT};
 use async_trait::async_trait;
 use mail2list_common::error::Result;
 use rbatis::crud::{CRUDTable, Skip, CRUD};
-use rbatis::plugin::page::{Page, PageRequest};
 use rbatis::wrapper::Wrapper;
 use serde::de::DeserializeOwned;
 use serde::Serialize;
@@ -31,36 +29,24 @@ where
     fn set_save_common_fields(&self, common: CommonField, data: &mut Entity);
 
     /**
-     * 公共分页查询方法
-     */
-    async fn page(&self, arg: &Params, page: PageData) -> Result<Page<Dto>> {
-        //构建查询条件
-        let wrapper = Self::get_wrapper(arg);
-        //构建分页条件
-        let page_request =
-            PageRequest::new(page.page_no.unwrap_or(1), page.page_size.unwrap_or(10));
-        //执行分页查询
-        let data_page: Page<Entity> = RB.fetch_page_by_wrapper(wrapper, &page_request).await?;
-        //将Entity实体转换成 Vo对象返回
-        let mut vos = vec![];
-        for x in data_page.records {
-            vos.push(Dto::from(x));
-        }
-        Ok(Page::<Dto> {
-            records: vos,
-            total: data_page.total,
-            pages: data_page.pages,
-            page_no: data_page.page_no,
-            page_size: data_page.page_size,
-            search_count: data_page.search_count,
-        })
-    }
-    /**
      * 公共列表查询方法
      */
     async fn list(&self, arg: &Params) -> Result<Vec<Dto>> {
         //构建查询条件
         let wrapper = Self::get_wrapper(arg);
+        //执行查询
+        let list: Vec<Entity> = RB.fetch_list_by_wrapper(wrapper).await?;
+        let mut vos = vec![];
+        //将Entity实体转换成 Vo对象 返回
+        for x in list {
+            vos.push(Dto::from(x));
+        }
+        Ok(vos)
+    }
+
+    async fn list_archive(&self, arg: &Params, name: &str) -> Result<Vec<Dto>> {
+        //构建查询条件
+        let wrapper = Self::get_wrapper(arg).eq("name",name).is_null("reference").order_by(false,&["create_time"]);
         //执行查询
         let list: Vec<Entity> = RB.fetch_list_by_wrapper(wrapper).await?;
         let mut vos = vec![];
@@ -91,6 +77,21 @@ where
         let vo = Dto::from(detail);
         return Ok(vo);
     }
+
+    async fn get_message_id(&self, message_id: String) -> Result<Dto> {
+        let wrapper = RB.new_wrapper().eq("message_id", message_id);
+        let detail: Entity = RB.fetch_by_wrapper(wrapper).await?;
+        let vo = Dto::from(detail);
+        return Ok(vo);
+    }
+
+
+    async fn get_email(&self, email: String, name: String) -> Result<Dto> {
+        let wrapper = RB.new_wrapper().eq("name", name).eq("email",email);
+        let detail: Entity = RB.fetch_by_wrapper(wrapper).await?;
+        let vo = Dto::from(detail);
+        return Ok(vo);
+    }
     /**
      * 保存实体
      */
@@ -100,13 +101,13 @@ where
         let tls = REQUEST_CONTEXT.clone();
         let creator = if let Some(a) = tls.get() { a.uid } else { 0 };
         /*设置公共字段*/
-        // self.set_save_common_fields(
-        //     // CommonField {
-        //     //     id: Some(0),
-        //     // },
-        //     data,
-        // );
-        let result = RB.save(data, &[Skip::Column("create_date")]).await?;
+        self.set_save_common_fields(
+            CommonField {
+                id: Some(0),
+            },
+            data,
+        );
+        let result = RB.save(data, &[Skip::Column("id")]).await?;
         return Ok(0);
     }
     /**

@@ -34,6 +34,11 @@ export default new Router({
               path: '/maillist',
               name: 'mailList',
               component: () => import('../components/pages/mailList')
+            },
+            {
+              path: '/archive',
+              name: 'archive',
+              component: () => import('../components/pages/archive')
             }
           ]
         },

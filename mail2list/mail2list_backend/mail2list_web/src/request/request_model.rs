@@ -12,3 +12,15 @@ pub struct MailListQuery {
     pub page_no: Option<u64>,
     pub page_size: Option<u64>,
 }
+
+#[derive(Serialize, Deserialize, Clone, Debug)]
+pub struct SubscribeMailListQuery {
+    pub id: Option<u64>,
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug)]
+pub struct ArchiveMailListQuery {
+    pub ids: Option<Vec<i64>>,
+    pub message_id: Option<String>,
+    pub name: Option<String>,
+}

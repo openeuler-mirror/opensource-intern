@@ -2,5 +2,6 @@
 members = [
     "mail2list_common",
     "mail2list_web",
-    "mail2list_clap"
+    "mail2list_clap",
+    "mail2list_archive_unsubscribe"
 ]

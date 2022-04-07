@@ -1,5 +1,7 @@
 
 pub mod mail_list_dto;
+pub mod subscribe_mail_list_dto;
+pub mod archive_mail_list_dto;
 
 use serde::{Deserialize, Serialize};
 
