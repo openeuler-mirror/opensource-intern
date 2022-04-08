@@ -93,7 +93,7 @@ export default {
         case 'flow':
           window.sessionStorage.setItem("menuName", 'flow');
           this.$router.push({
-            name: 'flow',
+            name: 'maillist',
             path: "/maillist",
             // query: {
             //   src: "/drawingBoard/page/flow/mxGraph/index.html?load=" + row.id,

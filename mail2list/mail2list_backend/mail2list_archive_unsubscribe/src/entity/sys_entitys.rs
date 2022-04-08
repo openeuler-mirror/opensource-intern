@@ -1,34 +1,3 @@
-/**
-*struct:SysUser
-*desc:后台用户表
-*author:zhaorunqi
-*email:runqi@isrc.iscas.ac.cn
-*/
-
-/**
-*struct:MailList
-*desc:邮箱列表表
-*author:zhaorunqi
-*email:runqi@isrc.iscas.ac.cn
-*/
-#[crud_table(table_name:mail_list)]
-#[derive(Clone, Debug)]
-pub struct MailList {
-    pub id: Option<i64>,
-    pub name: Option<String>,
-    pub email: Option<String>,
-    pub archive: Option<String>,
-    pub description: Option<String>
-}
-impl_field_name_method!(MailList {
-    id,
-    name,
-    email,
-    archive,
-    description
-});
-
-
 #[crud_table(table_name:subscribe_mail_list)]
 #[derive(Clone, Debug)]
 pub struct SubscribeMailList {
@@ -56,6 +25,7 @@ pub struct ArchiveMailList {
     pub message_id: Option<String>,
     pub in_reply_to: Option<String>,
     pub reference:Option<String>,
+    pub filename: Option<String>,
 }
 impl_field_name_method!(ArchiveMailList {
     id,
@@ -67,6 +37,7 @@ impl_field_name_method!(ArchiveMailList {
     message_id,
     in_reply_to,
     reference,
+    filename,
 });
 /**
 *struct:CommonField

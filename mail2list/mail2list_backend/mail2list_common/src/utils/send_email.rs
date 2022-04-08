@@ -33,7 +33,7 @@ impl SendMail {
         // Send the email
         let result = mailer.send(email.into());
         if result.is_ok() {
-            println!("Email sent to ");
+            print!("Email sent to ");
             println!("{}", email_receiver.to_string());
         } else {
             println!("Could not send email: {:?}", result);

@@ -7,7 +7,7 @@ server:
   host: "0.0.0.0"
   port: "9999"
 #数据库地址
-database_url: "********************************"
+database_url: "**********"
 #逻辑删除字段
 logic_column: "del"
 logic_un_deleted: 0
@@ -24,16 +24,13 @@ log_rolling_type: "KeepNum(20)"
 log_level: "info"
 
 email:
-  mine_email: "********************************"
-  smtp_server: "********************************"
-  password: "********************************"
-  imap_server: "********************************"
+  mine_email: "**********"
+  smtp_server: "**********"
+  password: "**********"
+  imap_server: "**********"
   #一个退订邮箱管理一个社区
-  leave_email : "********************************"
-  leave_email_password : "********************************"
-  leave_name: "********************************"
-  leave_smtp_server: "********************************"
-  leave_imap_server: "********************************"
-
-
-
+  leave_email : "**********"
+  leave_email_password : "**********"
+  leave_name: "A-Tune"
+  leave_smtp_server: "**********"
+  leave_imap_server: "**********"

@@ -47,6 +47,7 @@ module.exports = {
     modal: {
         placeholder: "请输入内容...",
         template_title: "保存模板名称",
+        new_thread:"新建会话",
         ok_text: "提交",
         upload_text: "提交",
         confirm: "确定",

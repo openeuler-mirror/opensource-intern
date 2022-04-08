@@ -6,7 +6,7 @@ use crate::utils::send_email::SendMail;
 pub struct ReceiveMail {}
 
 impl ReceiveMail {
-    pub fn receive_mail(imap_server: &str, email_receiver: &str, mine_email :&str,smtp_server: &str, password :&str, subject :&str, body :&str) -> imap::error::Result<Option<bool>> {
+    pub fn receive_mail(imap_server: &str, email_receiver: &str, mine_email :&str,smtp_server: &str, password :&str, subject :&str, body :&str) -> imap::error::Result<bool> {
         let client = imap::ClientBuilder::new(imap_server, 993).native_tls()?;
         // the client we have here is unauthenticated.
         // to do anything useful with the e-mails, we need to log in
@@ -25,7 +25,7 @@ impl ReceiveMail {
             let message = if let Some(m) = messages.iter().next() {
                 m
             } else {
-                return Ok(None);
+                return Ok(false);
             };
             // extract the message's body
             let header = message.header().expect("message did not have a subject!");
@@ -41,6 +41,6 @@ impl ReceiveMail {
         }
         // be nice to the server and log out
         imap_session.logout()?;
-        Ok(Some(flag))
+        Ok(flag)
     }
 }

@@ -55,7 +55,7 @@ import './assets/style/my-vxe-table.scss';
 Vue.use(VXETable)
 
 //实例化 store
-import store from './store'; // this.$store.commit("setUser", user); 
+import store from './store'; // this.$store.commit("setUser", user);
 
 //引入axios
 import axios from 'axios';
