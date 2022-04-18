@@ -7,12 +7,14 @@ pub struct SubscribeMailListDTO {
     pub id: Option<i64>,
     pub name: Option<String>,
     #[validate(email)]
+    pub user_email: Option<String>,
     pub email: Option<String>,
     pub username: Option<String>,
 }
 impl_field_name_method!(SubscribeMailListDTO {
     id,
     name,
+    user_email,
     email,
     username
 });
@@ -21,6 +23,7 @@ impl Into<SubscribeMailList> for SubscribeMailListDTO {
         SubscribeMailList {
             id: self.id,
             name: self.name,
+            user_email: self.user_email,
             email: self.email,
             username: self.username
         }
@@ -33,6 +36,7 @@ impl From<SubscribeMailList> for SubscribeMailListDTO {
             id: arg.id,
             name: arg.name,
             email: arg.email,
+            user_email: arg.user_email,
             username: arg.username,
         }
     }

@@ -7,7 +7,7 @@ server:
   host: "0.0.0.0"
   port: "9999"
 #数据库地址
-database_url: "********************************"
+database_url: "postgresql://agree:Bigdata123@47.94.142.147:5432/mail2list"
 #逻辑删除字段
 logic_column: "del"
 logic_un_deleted: 0
@@ -24,16 +24,15 @@ log_rolling_type: "KeepNum(20)"
 log_level: "info"
 
 email:
-  mine_email: "********************************"
-  smtp_server: "********************************"
-  password: "********************************"
-  imap_server: "********************************"
+  #此处应该是一个数组 密码以及服务等都应该是一个数组 来对应多个服务
+  mine_email: ["529978097@qq.com","180859181@qq.com"]
+  smtp_server: ["smtp.qq.com","smtp.qq.com"]
+  password: ["sbvsrwyvunaibjef","evbdadwthgcdcbcf"]
+  imap_server: ["imap.qq.com","imap.qq.com"]
   #一个退订邮箱管理一个社区
-  leave_email : "********************************"
-  leave_email_password : "********************************"
-  leave_name: "********************************"
-  leave_smtp_server: "********************************"
-  leave_imap_server: "********************************"
-
-
+  leave_email : ["529978097@qq.com","180859181@qq.com"]
+  leave_email_password : ["sbvsrwyvunaibjef","evbdadwthgcdcbcf"]
+  leave_name: ["A-Tune","rust"]
+  leave_smtp_server: ["smtp.qq.com","smtp.qq.com"]
+  leave_imap_server: ["imap.qq.com","imap.qq.com"]
 

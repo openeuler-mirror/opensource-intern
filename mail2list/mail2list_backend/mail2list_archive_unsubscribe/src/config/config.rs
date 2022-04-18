@@ -7,15 +7,15 @@ pub struct ServerConfig{
 
 #[derive(Debug, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct MailConfig{
-    pub mine_email : String,
-    pub password : String,
-    pub smtp_server : String,
-    pub imap_server : String,
-    pub leave_email : String,
-    pub leave_email_password : String,
-    pub leave_smtp_server : String,
-    pub leave_imap_server : String,
-    pub leave_name : String,
+    pub mine_email : Vec<String>,
+    pub password : Vec<String>,
+    pub smtp_server : Vec<String>,
+    pub imap_server : Vec<String>,
+    pub leave_email : Vec<String>,
+    pub leave_email_password : Vec<String>,
+    pub leave_smtp_server : Vec<String>,
+    pub leave_imap_server : Vec<String>,
+    pub leave_name : Vec<String>,
 }
 
 ///服务启动配置

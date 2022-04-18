@@ -1,6 +1,6 @@
 use crate::REQUEST_CONTEXT;
-use crate::{request::ArchiveMailListQuery,service::crud_service::CrudService, CONTEXT};
-use axum::extract::{Path, Query};
+use crate::{service::crud_service::CrudService, CONTEXT};
+use axum::extract::{Path};
 use axum::response::IntoResponse;
 
 use mail2list_common::RespVO;
@@ -12,9 +12,8 @@ use mail2list_common::RespVO;
  *desc:用户查询
  *author:zhaorunqi
  */
-pub async fn list(arg: Option<Query<ArchiveMailListQuery>>) -> impl IntoResponse {
-    let arg = arg.unwrap();
-    let vo = CONTEXT.archive_mail_list_service.list_archive(&arg).await;
+pub async fn list(Path(name): Path<String>) -> impl IntoResponse {
+    let vo = CONTEXT.archive_mail_list_service.list_archive(name).await;
     RespVO::from_result(&vo).resp_json()
 }
 /**
@@ -22,8 +21,8 @@ pub async fn list(arg: Option<Query<ArchiveMailListQuery>>) -> impl IntoResponse
  *desc:查询
  *author:zhaorunqi
  */
-pub async fn get_by_id(Path(id): Path<String>) -> impl IntoResponse {
-    let vo = CONTEXT.archive_mail_list_service.get(id).await;
+pub async fn get_by_message_id(Path(message_id): Path<String>) -> impl IntoResponse {
+    let vo = CONTEXT.archive_mail_list_service.get_message_list_by_message_id(message_id).await;
     RespVO::from_result(&vo).resp_json()
 }
 

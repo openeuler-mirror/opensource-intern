@@ -233,6 +233,7 @@ export default {
       this.name = "";
       this.description = "";
       this.email = "";
+      this.user_email = "",
       this.archive = "";
       this.username = "";
     },
@@ -246,9 +247,7 @@ export default {
           ]);
           this.$router.push({
             path: "/archive",
-            // query: {id:row.id, email:row.email},
             query: {
-              // src: "/archive/page/flow/mxGraph/index.html?load=" + row.id,
               name: row.name,
               email: row.email,
             },
@@ -266,11 +265,10 @@ export default {
     handleSaveUpdateData() {
       let data = {
         username: this.formValidate.username,
-        email: this.formValidate.mail,
+        user_email: this.formValidate.mail,
         name: this.name,
+        email: this.email,
       };
-      //update
-      // data.id = this.id;
       this.$axios
         .post("/maillist/menu/subscribe", JSON.stringify(data), {
           headers: {
@@ -281,7 +279,6 @@ export default {
           if (res.data.code === 0) {
             this.$Modal.success({
               title: this.$t("tip.title"),
-              // content `${this.data.data}`,
               content: `${res.data.data} `,
             });
             this.isOpen = false;

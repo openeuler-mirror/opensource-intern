@@ -2,6 +2,7 @@ use crate::MAIL2LIST_CONFIG;
 use rbatis::rbatis::Rbatis;
 
 pub mod interceptor;
+pub mod mapper;
 use interceptor::*;
 
 ///实例化 rbatis orm 连接池

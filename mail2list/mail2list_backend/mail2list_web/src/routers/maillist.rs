@@ -18,5 +18,6 @@ pub fn routers() -> Router {
             "/menu/subscribe",
             get(subscribe_mail_list_controller::list).post(subscribe_mail_list_controller::save)
         )
-        .route("/archive/list", get(archive_mail_list_controller::list))
+        .route("/archive/list/:name", get(archive_mail_list_controller::list))
+        .route("/archive/getListByMessageId/:message_id", get(archive_mail_list_controller::get_by_message_id))
 }

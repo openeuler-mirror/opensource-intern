@@ -8,4 +8,5 @@ pub struct RequestModel {
     pub username: String,
     pub agency_code: String,
     pub product_code: String,
+    pub message_id: String,
 }

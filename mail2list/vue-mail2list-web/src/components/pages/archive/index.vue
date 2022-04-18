@@ -19,10 +19,12 @@
         </span>
       </div>
     </div>
-    <div class="input-height" />
+    <div class="input" >
+      <a href="javascript:this.$router.push('/emptyPage');" v-on:click = returnPre v-if="isShow">{{ $t("page.prev_text") }}</a>
+    </div>
     <!-- Table button -->
 
-    <List item-layout="vertical">
+    <List item-layout="vertical" class="modal-warp">
       <ListItem v-for="item in data" :key="item.subject">
         <ListItemMeta
           :avatar="item.avatar"
@@ -36,18 +38,7 @@
             <!-- <router-link :to="{path: '/archive', query: {id: item.id}}">
                     More
                   </router-link> -->
-            <span style="color: #1a7444" @click="handleModalSwitch">More</span>
-          </li>
-          <li>
-            <!-- 此处使用超链接进行发送 然后在此处自动调用一个函数 将reply记录下来 在进行转发的时候将此值添加进去 然后我们在创建列表的时候 将Message-ID与refenrces相同的进行引用 放入同一个会话中 -->
-            <a
-              :id="email"
-              style="color: #1a7444"
-              :href="'mailto:' + email + '?subject=Re:' + item.subject"
-              target="_blank"
-              v-on:click="doChange"
-              >Reply</a>
-              <!-- <span type="text">Reply</span> -->
+            <span style="color: #1a7444" @click="handleModalSwitch(item.message_id)" v-if="isOpen">More</span>
           </li>
         </template>
         <template slot="extra">
@@ -73,7 +64,8 @@ export default {
       body: "",
       in_reply_to: "",
       reference: "",
-
+      isShow: false,
+      isOpen:true,
       data: [],
     };
   },
@@ -107,7 +99,7 @@ export default {
   methods: {
     getListData() {
       this.$axios
-        .get("/maillist/archive/list", {})
+        .get(`/maillist/archive/list/${this.$route.query.name}`, {})
         .then((res) => {
           if (res.data.code == 0) {
             this.data = res.data.data;
@@ -126,8 +118,32 @@ export default {
           });
         });
     },
-    doChange() {
 
+    handleModalSwitch(message_id){
+      //console.log(message_id);
+      //this.$event.emit("loading", true);
+      this.$axios
+        .get(`/maillist/archive/getListByMessageId/${message_id}`,{})
+        .then((res) => {
+          //this.$event.emit("loading", false);
+          if (res.data.code === 0) {
+            this.data = res.data.data;
+            this.isShow = !this.isShow;
+            this.isOpen = !this.isOpen;
+          } else {
+            this.$Modal.success({
+              title: this.$t("tip.title"),
+              content: this.$t("tip.request_fail_content"),
+            });
+          }
+        })
+        .catch((error) => {
+          console.log(error);
+        });
+    },
+
+    returnPre() {
+      this.$router.go(0);
     }
   },
 };

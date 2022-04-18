@@ -1,10 +1,8 @@
-use crate::entity::pagedata::PageData;
 use crate::entity::sys_entitys::CommonField;
 use crate::{RB, REQUEST_CONTEXT};
 use async_trait::async_trait;
 use mail2list_common::error::Result;
 use rbatis::crud::{CRUDTable, Skip, CRUD};
-use rbatis::plugin::page::{Page, PageRequest};
 use rbatis::wrapper::Wrapper;
 use serde::de::DeserializeOwned;
 use serde::Serialize;
@@ -46,9 +44,9 @@ where
         Ok(vos)
     }
 
-    async fn list_archive(&self, arg: &Params) -> Result<Vec<Dto>> {
+    async fn list_archive(&self, arg: &Params, name: &str) -> Result<Vec<Dto>> {
         //构建查询条件
-        let wrapper = Self::get_wrapper(arg).is_null("in_reply_to").order_by(false,&["create_time"]);
+        let wrapper = Self::get_wrapper(arg).eq("name",name).is_null("reference").order_by(false,&["create_time"]);
         //执行查询
         let list: Vec<Entity> = RB.fetch_list_by_wrapper(wrapper).await?;
         let mut vos = vec![];
@@ -79,6 +77,14 @@ where
         let vo = Dto::from(detail);
         return Ok(vo);
     }
+
+    async fn get_message_id(&self, message_id: String) -> Result<Dto> {
+        let wrapper = RB.new_wrapper().eq("message_id", message_id);
+        let detail: Entity = RB.fetch_by_wrapper(wrapper).await?;
+        let vo = Dto::from(detail);
+        return Ok(vo);
+    }
+
 
     async fn get_email(&self, email: String, name: String) -> Result<Dto> {
         let wrapper = RB.new_wrapper().eq("name", name).eq("email",email);

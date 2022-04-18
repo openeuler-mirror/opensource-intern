@@ -1,24 +1,43 @@
+use chrono::prelude::*;
 use mail2list_archive_unsubscribe::{
-    controller::subscribe_mail_list_controller,
-    controller::archive_mail_list_controller,
+    controller::archive_mail_list_controller, controller::subscribe_mail_list_controller,
     MAIL2LIST_CONFIG,
 };
 
+extern crate chrono;
+extern crate imap;
 
-
-
-/**
- *method:main
- *desc:退订以及归档 需要长时间自动访问 因此单独提取出来一个程序
- *author:zhaorunqi
- *email:348040933QQ.com
- */
 #[tokio::main]
 async fn main() {
-    //此处直接开始监控删除并且一直监控
-    //单独提出来一个程序 单独运行 并且如果找到的话记得删除邮件
-    loop{
-        //subscribe_mail_list_controller::delete(&MAIL2LIST_CONFIG.email.leave_smtp_server,&MAIL2LIST_CONFIG.email.leave_email,&MAIL2LIST_CONFIG.email.leave_smtp_server,&MAIL2LIST_CONFIG.email.leave_email_password, &MAIL2LIST_CONFIG.email.leave_name).await;
-        archive_mail_list_controller::save(&MAIL2LIST_CONFIG.email.leave_email,&MAIL2LIST_CONFIG.email.leave_smtp_server,&MAIL2LIST_CONFIG.email.leave_email_password, &MAIL2LIST_CONFIG.email.leave_name).await;
+    loop {
+        let dt = Local::now();
+        println!("dt: {}", dt);
+        tokio::spawn(async {
+            email().await;
+            true
+        })
+        .await
+        .unwrap();
+    }
+}
+
+async fn email() {
+    let len = MAIL2LIST_CONFIG.email.leave_imap_server.len();
+    for i in 0..len {
+        let save = archive_mail_list_controller::save(
+            &MAIL2LIST_CONFIG.email.mine_email[i],
+            &MAIL2LIST_CONFIG.email.imap_server[i],
+            &&MAIL2LIST_CONFIG.email.smtp_server[i],
+            &MAIL2LIST_CONFIG.email.password[i],
+            &MAIL2LIST_CONFIG.email.leave_name[i],
+        );
+        let delete = subscribe_mail_list_controller::delete(
+            &MAIL2LIST_CONFIG.email.leave_imap_server[i],
+            &MAIL2LIST_CONFIG.email.leave_email[i],
+            &MAIL2LIST_CONFIG.email.leave_smtp_server[i],
+            &MAIL2LIST_CONFIG.email.leave_email_password[i],
+            &MAIL2LIST_CONFIG.email.leave_name[i],
+        );
+        futures::join!(save, delete);
     }
 }

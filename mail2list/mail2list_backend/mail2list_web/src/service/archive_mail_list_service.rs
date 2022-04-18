@@ -1,11 +1,11 @@
-use std::collections::HashMap;
-
+use crate::dao::mapper::{get_message_list_by_message_id,get_archive_list};
 use crate::dto::archive_mail_list_dto::ArchiveMailListDTO;
 use crate::entity::sys_entitys::{CommonField, ArchiveMailList};
 use crate::request::ArchiveMailListQuery;
 use crate::service::crud_service::CrudService;
 use crate::{RB};
 use rbatis::wrapper::Wrapper;
+use mail2list_common::error::Result;
 
 /**
 *struct:ArchiveMailListService
@@ -17,13 +17,30 @@ pub struct ArchiveMailListService {}
 
 impl ArchiveMailListService {
 
-    fn build(&self, menus: Vec<ArchiveMailList>) -> Vec<ArchiveMailListDTO> {
-        let mut result = HashMap::with_capacity(menus.capacity());
-        let  data = vec![];
-        for x in menus {
-            result.insert(x.id.clone().unwrap_or_default(), x);
+    pub async fn get_message_list_by_message_id(&self,message_id: String) -> Result<Vec<ArchiveMailListDTO>> {
+        let one = self.get_message_id(message_id.clone()).await.unwrap();
+        let result = get_message_list_by_message_id(&RB,message_id.as_str()).await.unwrap();
+        let mut vec = vec![];
+        vec.push(ArchiveMailListDTO::from(one));
+        for r in result.unwrap() {
+            let r1 = r.clone();
+            vec.push(ArchiveMailListDTO::from(r));
+            let message_id = r1.message_id.unwrap();
+            let result = get_message_list_by_message_id(&RB,message_id.as_str()).await.unwrap();
+            for r2 in result.unwrap() {
+                vec.push(ArchiveMailListDTO::from(r2));
+            }
         }
-        data
+        Ok(vec)
+    }
+
+    pub async fn list_archive(&self, name: String) -> Result<Vec<ArchiveMailListDTO>> {
+        let result = get_archive_list(&RB,name.as_str()).await.unwrap();
+        let mut vec = vec![];
+        for r in result.unwrap() {
+            vec.push(ArchiveMailListDTO::from(r));
+        }
+        Ok(vec)
     }
 }
 impl Default for ArchiveMailListService {

@@ -39,8 +39,8 @@ where
         return Ok(vo);
     }
 
-    async fn get_email(&self, email: String, name: String) -> Result<Dto> {
-        let wrapper = RB.new_wrapper().eq("name", name).eq("email",email);
+    async fn get_user_email(&self, user_email: String, name: String) -> Result<Dto> {
+        let wrapper = RB.new_wrapper().eq("name", name).eq("user_email",user_email);
         let detail: Entity = RB.fetch_by_wrapper(wrapper).await?;
         let vo = Dto::from(detail);
         return Ok(vo);
@@ -107,6 +107,11 @@ where
      */
     async fn del_by_column(&self, column: &str, column_value: &str) {
         RB.remove_by_column::<Entity, _>(column, column_value).await;
+    }
+
+    async fn del_user_email(&self, user_email: String, email: String) {
+        let wrapper = RB.new_wrapper().eq("user_email", user_email).eq("email",email);
+        RB.remove_by_wrapper::<Entity>(wrapper).await;
     }
     /**
      * 批量删除实体 逻辑删除

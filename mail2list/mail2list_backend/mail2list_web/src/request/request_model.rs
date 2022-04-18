@@ -21,4 +21,6 @@ pub struct SubscribeMailListQuery {
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct ArchiveMailListQuery {
     pub ids: Option<Vec<i64>>,
+    pub message_id: Option<String>,
+    pub name: Option<String>,
 }

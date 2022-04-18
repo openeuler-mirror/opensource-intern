@@ -3,6 +3,7 @@
 pub struct SubscribeMailList {
     pub id: Option<i64>,
     pub name: Option<String>,
+    pub user_email: Option<String>,
     pub email: Option<String>,
     pub username: Option<String>,
 }
@@ -10,6 +11,7 @@ impl_field_name_method!(SubscribeMailList {
     id,
     name,
     email,
+    user_email,
     username,
 });
 

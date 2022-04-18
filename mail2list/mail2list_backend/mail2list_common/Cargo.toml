@@ -13,7 +13,7 @@ tokio = { version="1", features = ["full"] }
 md5 = "0.7.0"
 rustflake = "0.1.0"
 
-rbatis = { version = "3.0", default-features = false, features = ["mysql", "runtime-async-std-rustls"] }
+rbatis = { version = "3.0"}
 rbson = "2.0.3"
 
 imap = "3.0.0-alpha.6"
@@ -21,3 +21,4 @@ mailparse = "0.13.8"
 lettre = "0.9"
 lettre_email = "0.9"
 mime = "0.3.13"
+native-tls = "0.2"
