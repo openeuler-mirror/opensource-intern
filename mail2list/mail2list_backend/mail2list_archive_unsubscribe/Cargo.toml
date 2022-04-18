@@ -18,9 +18,9 @@ chrono = "0.4"
 
 
 rbson = "2.0"
-rbatis = { version = "3.0"}
+rbatis = "3.0"
 
-async-std = {version ="1.10", features = ["attributes"]}
+async-std = "1.10"
 
 #static
 lazy_static = "1.4.0"
@@ -59,4 +59,3 @@ mailparse = "0.13.8"
 lettre = "0.10.0-rc.5"
 lettre_email = "0.9"
 mime = "0.3.13"
-native-tls = "0.2"
