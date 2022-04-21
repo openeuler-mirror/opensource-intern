@@ -19,3 +19,27 @@ Cargo.lock
 
 # IDE
 .idea
+
+site/node_modules/
+site/docs/.vuepress/.cache/
+site/docs/.vuepress/.temp/
+site/docs/.vuepress/dist/
+# npm
+site/package-lock.json
+site/node_modules
+site/yarn-error.log
+
+# vscode
+site/.vscode
+
+#yarn
+site/yarn.lock
+
+
+# 百度链接推送
+site/urls.txt
+
+# mac
+site/.DS_Store
+
+site/vdoing
