@@ -8,12 +8,21 @@ BEGIN;
 CREATE SEQUENCE sq_mail_id START 1;
 CREATE TABLE mail_list
 (
-    id INT PRIMARY KEY,
+    id integer NOT NULL DEFAULT nextval('sq_mail_id'),
     name varchar(20)  NOT NULL,
-    email varchar(20),
-    archive varchar(20),
-    description varchar(100)
+    email  character varying,
+    archive  character varying,
+    description  character varying
 );
+
+CREATE TABLE subscribe_mail_list
+(
+	id integer NOT NULL DEFAULT nextval('sq_mail_id'),
+	user_email character varying,
+	username character varying,
+	name character varying,
+	email character varying
+)
 
 CREATE  TABLE "archive_mail_list" (
 	id integer NOT NULL DEFAULT nextval('sq_mail_id'),
