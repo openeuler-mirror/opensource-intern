@@ -1,0 +1,4 @@
+[build]
+base = "site"
+publish = "site/docs/.vuepress/public"
+command = "yarn docs:build"

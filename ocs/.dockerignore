@@ -1,0 +1,6 @@
+.dockerignore
+.git*
+debian/Dockerfile
+
+# From .gitignore
+target/
