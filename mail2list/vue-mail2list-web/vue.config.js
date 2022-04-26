@@ -103,7 +103,7 @@ module.exports = {
         proxy: {
             '/maillist': {
                 // target: 'http://10.0.90.119:6002',
-                target: 'http://127.0.0.1:9999/',
+                target: 'http://192.168.116.114:9999/',
                 // target: 'http://10.0.90.221:6002',
                 // target: 'http://10.0.85.80:6002/piflow-web/admin',
                 // target: 'http://10.0.85.82:6001',
