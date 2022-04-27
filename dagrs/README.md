@@ -333,3 +333,10 @@ log 文件如下：
 03:47:55 [INFO] Task[name: Task 3] exec done, success: true, return value: Global { data: 0x7f864600d2a0, isolate_handle: IsolateHandle(IsolateAnnex { isolate: 0x0, isolate_mutex: Mutex { data: (), poisoned: false, .. } }) }
 ```
 
+
+TODO:
+- [ ] 增加 Task 输入输出值功能，定义输入输出值传递的条件
+- [ ] 增加 Engine 整体环境变量功能
+- [ ] 增加 Task 和 Engine 任务执行成功和失败的功能
+- [ ] 优化错误处理
+- [ ] 优化 Log
