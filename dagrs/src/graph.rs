@@ -58,9 +58,9 @@ impl Graph {
         self.nodes.insert(id, index);
     }
 
-    /// Add an edge into the graph
+    /// Add an edge into the graph.
     /// 
-    /// #Example
+    /// # Example
     /// ```
     /// g.add_edge(0, 1);
     /// ```
@@ -121,7 +121,7 @@ impl Graph {
             .count();
 
         while !queue.is_empty() {
-            let v = queue.pop().unwrap();
+            let v = queue.pop().unwrap();   // This unwrap is ok since `queue` is not empty
 
             sequence.push(v);
             count += 1;
