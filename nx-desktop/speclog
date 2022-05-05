@@ -1,0 +1,89 @@
+kf5-kfilemetadata.spec
+kf5-baloo.spec
+bluedevil.spec
+
+plasma-workspace.spec
+    libqalculate.spec
+        cln.spec
+    libbsd.spec
+    kf5-threadweaver.spec
+    kf5-prison.spec
+        libdmtx.spec
+    kf5-kxmlrpcclient.spec
+    kf5-ktexteditor.spec
+    ksysguard.spec
+        libksysguard.spec
+    kf5-krunner.spec
+    kf5-kpeople.spec
+    kf5-knotifyconfig.spec
+    kf5-kjsembed.spec
+        kf5-kjs.spec
+    kf5-kholidays.spec
+    gpsd.spec
+    kf5-kactivities-stats.spec
+kde-cli-tools.spec
+kde-gtk-config.spec
+plymouth-kcm.spec
+kscreenlocker.rpm
+sddm-kcm.spec
+sddm.spec
+khotkeys.spec
+
+kf5-kio-core kf5-kio
+kio-extras.spec
+    kf5-khtml.spec
+    kf5-kdnssd.spec
+kscreen.spec
+
+kwin
+
+kdeplasma-addons.spec
+    kf5-kross.spec
+
+plasma-oxygen.spec
+
+kde-settings.spec
+kactivitymanagerd.spec
+plasma-milou.spec
+polkit-kde.spec
+
+
+plasma-desktop.spec
+    scim.spec
+qqc2-desktop-style.spec
+kmenuedit.spec
+kwrited.spec
+plasma-integration.spec
+plasma-systemsettings.spec
+
+plasma-nm.spec
+    qca.spec
+    kf5-modemmanager-qt.spec
+
+plasma-pa.spec
+plasma-thunderbolt
+kdeplasma-addons
+plasma-vault.spec
+polkit-kde.spec
+
+applet-window-buttons.spec
+
+nx-audio-applet.spec
+nx-clock-applet.spec
+nx-desktop-settings.spec
+nx-firewall.spec
+    ufw.spec
+    netstat-nat.spec
+nx-gtk-themes.spec
+nx-kstyle-theme.spec
+nx-networkmanagement-applet.spec
+nx-notifications-applet.spec
+nx-plasma-look-and-feel.spec
+    latte-dock.spec
+nx-simplemenu-applet.spec
+nx-systemtray-applet.spec
+nx-window-deco.spec
+grub2-theme-nitrux.spec
+    dejavu-fonts.spec
+
+
