@@ -1,7 +1,7 @@
 dagrs:
   a:
     # no name
-    rely: [b]
+    after: [b]
     run:
       type: sh
       script: echo x

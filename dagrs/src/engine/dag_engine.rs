@@ -1,21 +1,27 @@
 //! Dag Engine is dagrs's main body
 
-use crate::{
+use super::{
+    env_variables::EnvVar,
     error_handler::{DagError, RunningError},
     graph::Graph,
-    task::{ExecState, Inputval, Retval, TaskWrapper, YamlTask},
 };
-use std::collections::HashMap;
+use crate::task::{ExecState, Inputval, Retval, TaskWrapper, YamlTask};
+use log::*;
+use std::{collections::HashMap, sync::Arc};
 
 /// dagrs's function is wrapped in DagEngine struct
 pub struct DagEngine {
-    /// Store all tasks' infos
-    tasks: HashMap<usize, TaskWrapper>,
+    /// Store all tasks' infos.
+    ///
+    /// Arc but no mutex, because only one thread will change [`TaskWrapper`]
+    /// at a time. And no modification to [`TaskWrapper`] happens during the execution of it.
+    tasks: HashMap<usize, Arc<TaskWrapper>>,
     /// Store dependency relations
     rely_graph: Graph,
     /// Store a task's running result
     execstate_store: HashMap<usize, ExecState>,
-    // TODO: Environment
+    // Environment Variables
+    env: EnvVar,
 }
 
 impl DagEngine {
@@ -30,6 +36,7 @@ impl DagEngine {
             tasks: HashMap::new(),
             rely_graph: Graph::new(),
             execstate_store: HashMap::new(),
+            env: EnvVar::new(),
         }
     }
 
@@ -48,7 +55,8 @@ impl DagEngine {
     /// **Note:** This method must be called after all tasks have been added into dagrs.
     pub fn run(&mut self) -> Result<bool, DagError> {
         self.create_graph()?;
-        Ok(self.check_dag())
+        let rt = tokio::runtime::Runtime::new().unwrap();
+        Ok(rt.block_on(async { self.check_dag().await }))
     }
 
     /// Do dagrs's job from yaml file.
@@ -61,7 +69,7 @@ impl DagEngine {
     ///
     /// This method is similar to `run`, but read tasks from yaml file,
     /// thus no need to add tasks mannually.
-    fn run_from_yaml(&mut self, filename: &str) -> Result<bool, DagError> {
+    pub fn run_from_yaml(mut self, filename: &str) -> Result<bool, DagError> {
         self.read_tasks(filename)?;
         self.run()
     }
@@ -75,23 +83,24 @@ impl DagEngine {
     /// This operation will read all info in yaml file into `dagrs.tasks` if no error occurs.
     fn read_tasks(&mut self, filename: &str) -> Result<(), DagError> {
         let tasks = YamlTask::from_yaml(filename)?;
-        tasks.into_iter().map(|t| self.add_task(t)).count();
+        tasks.into_iter().map(|t| self.add_tasks(vec![t])).count();
         Ok(())
     }
 
-    /// Add new task into dagrs
+    /// Add new tasks into dagrs
     ///
     /// # Example
     /// ```
     /// let dagrs = DagEngine::new();
-    /// dagrs.add_task(task1);
-    /// dagrs.add_task(task2);
-    /// dagrs.run("test/test_dag.yaml");
+    /// dagrs.add_tasks(vec![task1, task2]);
+    /// dagrs.run();
     /// ```
     ///
     /// Here `task1` and `task2` are user defined task wrapped in [`TaskWrapper`].
-    pub fn add_task(&mut self, task: TaskWrapper) {
-        self.tasks.insert(task.get_id(), task);
+    pub fn add_tasks(&mut self, tasks: Vec<TaskWrapper>) {
+        for task in tasks {
+            self.tasks.insert(task.get_id(), Arc::new(task));
+        }
     }
 
     /// Push a task's [`ExecState`] into hash store
@@ -113,11 +122,11 @@ impl DagEngine {
 
     /// Prepare given task's [`Inputval`].
     fn form_input(&self, id: &usize) -> Inputval {
-        let relys = self.tasks[id].get_rely_list();
+        let froms = self.tasks[id].get_input_from_list();
         Inputval::new(
-            relys
+            froms
                 .iter()
-                .map(|rely_id| self.pull_execstate(rely_id).get_dmap())
+                .map(|from| self.pull_execstate(from).get_dmap())
                 .collect(),
         )
     }
@@ -143,7 +152,7 @@ impl DagEngine {
         for (&id, task) in self.tasks.iter() {
             let index = self.rely_graph.find_index_by_id(&id).unwrap();
 
-            for rely_task_id in task.get_rely_list() {
+            for rely_task_id in task.get_exec_after_list() {
                 // Rely task existence check
                 let rely_index = self.rely_graph.find_index_by_id(&rely_task_id).ok_or(
                     DagError::running_error(RunningError::RelyTaskIllegal(task.get_name())),
@@ -163,7 +172,7 @@ impl DagEngine {
     /// dagrs.check_dag();
     /// ```
     /// This opeartions will judge the graph and give out a execution sequence if possible.
-    fn check_dag(&mut self) -> bool {
+    async fn check_dag(&mut self) -> bool {
         if let Some(seq) = self.rely_graph.topo_sort() {
             let seq = seq
                 .into_iter()
@@ -172,36 +181,31 @@ impl DagEngine {
             self.print_seq(&seq);
 
             // Start Executing
-            seq.iter()
-                .map(|id| {
-                    info!("Executing Task[name: {}]", self.tasks[id].get_name());
+            for id in seq {
+                info!("Executing Task[name: {}]", self.tasks[&id].get_name());
 
-                    // Init state is empty.
-                    let mut state = ExecState::empty();
-                    crossbeam::scope(|scope| {
-                        let task_inner = self.tasks[id].get_inner();
+                let input = self.form_input(&id);
+                let env = self.env.clone();
 
-                        let input = self.form_input(id);
-                        let handle = scope.spawn(|_| task_inner.lock().unwrap().run(input));
+                let task = self.tasks[&id].clone();
+                let handle = tokio::spawn(async move { task.run(input, env) });
 
-                        // Recore executing state.
-                        state = if let Ok(val) = handle.join() {
-                            ExecState::new(true, val)
-                        } else {
-                            ExecState::new(false, Retval::empty())
-                        };
-                    })
-                    .expect("[Error] Create child task thread fails.");
+                // Recore executing state.
+                let state = if let Ok(val) = handle.await {
+                    ExecState::new(true, val)
+                } else {
+                    ExecState::new(false, Retval::empty())
+                };
 
-                    info!(
-                        "Finish Task[name: {}], success: {}",
-                        self.tasks[id].get_name(),
-                        state.success()
-                    );
-                    // Push executing state in to store.
-                    self.push_execstate(*id, state);
-                })
-                .count();
+                info!(
+                    "Finish Task[name: {}], success: {}",
+                    self.tasks[&id].get_name(),
+                    state.success()
+                );
+                // Push executing state in to store.
+                self.push_execstate(id, state);
+            }
+
             true
         } else {
             error!("Loop Detect");

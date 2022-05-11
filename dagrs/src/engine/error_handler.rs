@@ -42,8 +42,8 @@ pub enum YamlError {
 pub enum RunningError {
     #[error("Task[{0}] dependency task not exist")]
     RelyTaskIllegal(String),
-    #[error("Task[{0}] run script fails")]
-    RunScriptFailure(String)
+    #[error("Task[{0}] run script fails, details: {1}")]
+    RunScriptFailure(String, String)
 }
 
 impl DagError {

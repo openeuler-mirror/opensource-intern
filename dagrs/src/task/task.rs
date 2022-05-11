@@ -1,27 +1,27 @@
-use crate::error_handler::DagError;
+use crate::engine::{DagError, RunningError, EnvVar};
 
-use super::{ExecState, Retval, Inputval};
-use deno_core::{JsRuntime, RuntimeOptions};
+use super::{Inputval, Retval};
+use deno_core::{serde_json, serde_v8, v8, JsRuntime, RuntimeOptions};
 use lazy_static::lazy_static;
 use std::process::Command;
-use std::sync::Mutex;
-use std::thread;
+use std::sync::{Mutex};
 
 /// Task Trait.
 ///
 /// Any struct implements this trait can be added into dagrs.
 pub trait TaskTrait {
-    fn run(&self, input: Inputval) -> Retval;
+    fn run(&self, input: Inputval, env: EnvVar) -> Retval;
 }
 
 /// Wrapper for task that impl [`TaskTrait`].
-/// 
+///
 /// Since task will be executed in seperated threads, `send` is needed.
 pub struct TaskWrapper {
     id: usize,
     name: String,
-    rely_list: Vec<usize>,
-    inner: Mutex<Box<dyn TaskTrait + Send>>,
+    exec_after: Vec<usize>,
+    input_from: Vec<usize>,
+    inner: Box<dyn TaskTrait + Send + Sync>,
 }
 
 impl TaskWrapper {
@@ -35,46 +35,53 @@ impl TaskWrapper {
     /// `Task` is a struct that impl [`TaskTrait`].
     ///
     /// **Note:** This method will take the ownership of struct that impl [`TaskTrait`].
-    pub fn new(task: impl TaskTrait + 'static + Send, name: &str) -> Self {
+    pub fn new(task: impl TaskTrait + 'static + Send + Sync, name: &str) -> Self {
         TaskWrapper {
             id: ID_ALLOCATOR.lock().unwrap().alloc(),
             name: name.to_owned(),
-            rely_list: Vec::new(),
-            inner: Mutex::new(Box::new(task)),
+            exec_after: Vec::new(),
+            input_from: Vec::new(),
+            inner: Box::new(task),
         }
     }
 
     #[allow(unused)]
-    /// Tasks that shall be executed after this one.
+    /// Tasks that shall be executed before this one.
     ///
     /// # Example
     /// ```
     /// let mut t1 = TaskWrapper::new(T1{}, "Task 1");
     /// let mut t2 = TaskWrapper::new(T2{}, "Task 2");
-    /// t2.add_relys(&[&t1]);
+    /// t2.exec_after(&[&t1]);
     /// ```
-    /// In above code, `t2` will be executed before `t1`.
-    pub fn rely_on(&mut self, relys: &[&TaskWrapper]) {
-        self.rely_list.extend(relys.iter().map(|t| t.get_id()))
+    /// In above code, `t1` will be executed before `t2`.
+    pub fn exec_after(&mut self, relys: &[&TaskWrapper]) {
+        self.exec_after.extend(relys.iter().map(|t| t.get_id()))
     }
 
-    /// Tasks that shall be executed after this one.
-    ///
-    /// # Example
-    /// ```
-    /// let mut t1 = TaskWrapper::new(T1{}, "Task 1");
-    /// let mut t2 = TaskWrapper::new(T2{}, "Task 2");
-    /// t2.add_relys_by_ids(&[t1.get_id()]);
-    /// ```
-    /// Similar to `add_relys`, but this method tasks `id` rather than a task.
-    ///
-    /// In above code, `t2` will be executed before `t1`.
-    pub fn add_relys_by_ids(&mut self, relys: &[usize]) {
-        self.rely_list.extend(relys.iter())
+    /// Input will come from the given tasks' exec result.
+    pub fn input_from(&mut self, needed: &[&TaskWrapper]) {
+        self.input_from.extend(needed.iter().map(|t| t.get_id()))
     }
 
-    pub fn get_rely_list(&self) -> Vec<usize> {
-        self.rely_list.clone()
+    /// The same as `exec_after`, but input are tasks' ids
+    /// rather than reference to [`TaskWrapper`].
+    pub fn exec_after_id(&mut self, relys: &[usize]) {
+        self.exec_after.extend(relys)
+    }
+
+    /// The same as `input_from`, but input are tasks' ids
+    /// rather than reference to [`TaskWrapper`].
+    pub fn input_from_id(&mut self, needed: &[usize]) {
+        self.input_from.extend(needed)
+    }
+
+    pub fn get_exec_after_list(&self) -> Vec<usize> {
+        self.exec_after.clone()
+    }
+
+    pub fn get_input_from_list(&self) -> Vec<usize> {
+        self.input_from.clone()
     }
 
     pub fn get_id(&self) -> usize {
@@ -85,8 +92,8 @@ impl TaskWrapper {
         self.name.to_owned()
     }
 
-    pub fn get_inner(&self) -> &Mutex<Box<dyn TaskTrait + Send>> {
-        &self.inner
+    pub fn run(&self, input: Inputval, env: EnvVar) -> Retval {
+        self.inner.run(input, env)
     }
 }
 
@@ -106,9 +113,8 @@ impl IDAllocator {
 
 lazy_static! {
     /// Instance of IDAllocator
-    static ref ID_ALLOCATOR: Mutex<IDAllocator> = Mutex::new(IDAllocator { id: 0 });
+    static ref ID_ALLOCATOR: Mutex<IDAllocator> = Mutex::new(IDAllocator { id: 1 });
 }
-
 
 /// Can be used to run a script cmd or file.
 #[derive(Debug)]
@@ -146,33 +152,66 @@ impl RunScript {
     /// let r = RunScript::new("echo Hello!", RunType::SH);
     /// r.exec();
     /// ```
-    pub fn exec(&self) -> Result<String, DagError> {
-        match self.executor {
-            RunType::SH => self.run_sh(),
-            RunType::DENO => self.run_deno(),
-        }
+    pub fn exec(&self, input: Inputval) -> Result<String, DagError> {
+        let res = match self.executor {
+            RunType::SH => self.run_sh(input),
+            RunType::DENO => self.run_deno(input),
+        };
+        
+        res
     }
 
-    fn run_sh(&self) -> Result<String, DagError> {
+    fn run_sh(&self, input: Inputval) -> Result<String, DagError> {
+        let mut cmd = format!("{} ", self.script);
+        input
+            .get_iter()
+            .map(|input| {
+                cmd.push_str(
+                if let Some(dmap) = input {
+                    if let Some(str) = dmap.get::<String>() {
+                        str
+                    } else {
+                        ""
+                    }
+                } else {
+                    ""
+                })
+            }).count();
+        
+
         let res = Command::new("sh")
             .arg("-c")
-            .arg(&self.script)
+            .arg(&cmd)
             .output()
             .map(|output| format!("{}", String::from_utf8(output.stdout).unwrap()));
-        
+
         res.map_err(|err| err.into())
     }
 
-    fn run_deno(&self) -> Result<String, DagError> {
+    fn run_deno(&self, _input: Inputval) -> Result<String, DagError> {
         let script = self.script.clone();
-        let handle = thread::spawn(move || {
-            let output = JsRuntime::new(RuntimeOptions {
-                ..Default::default()
-            })
-            .execute_script("", &script);
+        let mut context = JsRuntime::new(RuntimeOptions {
+            ..Default::default()
         });
+        match context.execute_script("", &script) {
+            Ok(global) => {
+                let scope = &mut context.handle_scope();
+                let local = v8::Local::new(scope, global);
 
-        // TODO
-        unimplemented!()
+                let deserialized_value = serde_v8::from_v8::<serde_json::Value>(scope, local);
+
+                match deserialized_value {
+                    Ok(value) => Ok(value.to_string()),
+                    Err(err) => Err(DagError::running_error(RunningError::RunScriptFailure(
+                        "?".into(),
+                        format!("Cannot deserialize value: {:?}", err),
+                    ))),
+                }
+            }
+            Err(err) => Err(DagError::running_error(RunningError::RunScriptFailure(
+                "?".into(),
+                format!("{:?}", err),
+            ))),
+        }
     }
 }

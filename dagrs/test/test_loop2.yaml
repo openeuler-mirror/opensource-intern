@@ -1,49 +1,49 @@
 dagrs:
   a:
     name: "任务1"
-    rely: [b, c]
+    after: [b, c]
     run:
       type: sh
       script: echo x
   b:
     name: "任务2"
-    rely: [c, f, g]
+    after: [c, f, g]
     run:
       type: sh
       script: echo x
   c:
     name: "任务3"
-    rely: [e, g]
+    after: [e, g]
     run:
       type: sh
       script: echo x
   d:
     name: "任务4"
-    rely: [c, e]
+    after: [c, e]
     run:
       type: sh
       script: echo x
   e:
     name: "任务5"
-    rely: [h]
+    after: [h]
     run:
       type: sh
       script: echo x
   f:
     name: "任务6"
-    rely: [g]
+    after: [g]
     run:
       type: sh
       script: echo x
   g:
     name: "任务7"
-    rely: [h]
+    after: [h]
     run:
       type: sh
       script: echo x
   h:
     name: "任务8"
-    rely: [f]
+    after: [f]
     run:
       type: sh
       script: echo x

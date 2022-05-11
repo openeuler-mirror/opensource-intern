@@ -2,11 +2,12 @@ dagrs:
   a:
     name: "任务1"
     after: [b]
+    from: [b]
     run:
       type: sh
-      script: ./test/test.sh
+      script: echo > ./test/test_value_pass1.txt
   b:
     name: "任务2"
     run:
       type: deno
-      script: Deno.core.print("Hello!")
+      script: let a = 1+4; a*2
