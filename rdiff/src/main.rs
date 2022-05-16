@@ -1,3 +1,18 @@
+/*!
+本项目是用Rust编写diff工具
+
+USAGE:
+    rdiff file1 file2
+
+例如：
+
+```bash
+$ rdiff text1.txt text2.txt 
+
+```
+
+*/
+
 extern crate clap;
 extern crate chrono;
 
