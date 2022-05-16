@@ -1,6 +1,6 @@
-use super::{Retval, RunScript, RunType, TaskTrait, TaskWrapper, Inputval};
-use crate::error_handler::{DagError, YamlFormatError, RunningError};
-use std::{collections::HashMap, fs::File, io::Read};
+use super::{Inputval, Retval, RunScript, RunType, TaskTrait, TaskWrapper};
+use crate::engine::{DagError, YamlFormatError, EnvVar};
+use std::{cell::Cell, collections::HashMap, fs::File, io::Read};
 use yaml_rust::{Yaml, YamlLoader};
 
 #[derive(Debug)]
@@ -11,7 +11,6 @@ struct YamlTaskInner {
 }
 
 /// Task struct for YAML file.
-#[derive(Debug)]
 pub struct YamlTask {
     /// Task's id in yaml file.
     ///
@@ -19,16 +18,23 @@ pub struct YamlTask {
     yaml_id: String,
     /// Task's name.
     name: String,
-    /// Record tasks' `yaml_id` that shall be executed after this task.
-    relys: Vec<String>,
+    /// Record tasks' `yaml_id` that shall be executed before this task.
+    afters: Vec<String>,
+    /// Record tasks' `yaml_id` that shall give their execution results to this task.
+    froms: Vec<String>,
     /// A field shall be wrapper into [`TaskWrapper`] later.
-    inner: YamlTaskInner,
+    ///
+    /// Why [`Cell`] and [`Option`]? Useful in funtion `from_yaml`.
+    inner: Cell<Option<YamlTaskInner>>,
 }
 
 impl TaskTrait for YamlTaskInner {
-    fn run(&self, input: Inputval) -> Retval {
-        // TODO
-        Retval::empty()
+    fn run(&self, input: Inputval, _env: EnvVar) -> Retval {
+        if let Ok(res) = self.run.exec(input) {
+            Retval::new(res)
+        } else {
+            Retval::empty()
+        }
     }
 }
 
@@ -54,7 +60,9 @@ impl YamlTask {
         // Get name first
         let name = info["name"]
             .as_str()
-            .ok_or(DagError::format_error(YamlFormatError::NoName(id.to_owned())))?
+            .ok_or(DagError::format_error(YamlFormatError::NoName(
+                id.to_owned(),
+            )))?
             .to_owned();
 
         // Get run script
@@ -72,30 +80,37 @@ impl YamlTask {
             }
         };
 
-        let run_script =
-            run["script"]
-                .as_str()
-                .ok_or(DagError::format_error(YamlFormatError::RunScriptError(
-                    id.into(),
-                )))?;
+        let run_script = run["script"].as_str().ok_or(DagError::format_error(
+            YamlFormatError::RunScriptError(id.into()),
+        ))?;
 
-        // relys can be empty
-        let mut relys = Vec::new();
-        if let Some(rely_tasks) = info["rely"].as_vec() {
-            rely_tasks
+        // afters can be empty
+        let mut afters = Vec::new();
+        if let Some(after_tasks) = info["after"].as_vec() {
+            after_tasks
                 .iter()
-                .map(|rely_task_id| relys.push(rely_task_id.as_str().unwrap().to_owned()))
+                .map(|task_id| afters.push(task_id.as_str().unwrap().to_owned()))
                 .count();
         }
 
-        let inner = YamlTaskInner {
+        // froms can be empty, too
+        let mut froms = Vec::new();
+        if let Some(from_tasks) = info["from"].as_vec() {
+            from_tasks
+                .iter()
+                .map(|task_id| froms.push(task_id.as_str().unwrap().to_owned()))
+                .count();
+        }
+
+        let inner = Cell::new(Some(YamlTaskInner {
             run: RunScript::new(run_script, executor),
-        };
+        }));
 
         Ok(YamlTask {
             yaml_id: id.to_string(),
             name,
-            relys,
+            afters,
+            froms,
             inner,
         })
     }
@@ -139,37 +154,41 @@ impl YamlTask {
     ///
     /// Used in [`crate::DagEngine`].
     pub fn from_yaml(filename: &str) -> Result<Vec<TaskWrapper>, DagError> {
-        let tasks = YamlTask::parse_tasks(filename)?;
-        let mut res = Vec::new();
-        let mut temp_hash_yaml2id = HashMap::new();
-        let mut temp_hash_id2rely = HashMap::new();
+        let yaml_tasks = YamlTask::parse_tasks(filename)?;
+        let mut tasks = Vec::new();
+        let mut yid2id = HashMap::new();
 
-        // Wrap tasks
-        tasks
-            .into_iter()
-            .map(|t| {
-                let task = TaskWrapper::new(t.inner, &t.name);
-                temp_hash_id2rely.insert(task.get_id(), t.relys);
-                temp_hash_yaml2id.insert(t.yaml_id, task.get_id());
-                res.push(task);
-            })
-            .count();
-
-        // Add Dependency
-        for task in &mut res {
-            let mut relys = Vec::new();
-            for rely in &temp_hash_id2rely[&task.get_id()] {
-                // Rely task existence check
-                if !temp_hash_yaml2id.contains_key(rely) {
-                    return Err(DagError::running_error(RunningError::RelyTaskIllegal(
-                        task.get_name(),
-                    )));
-                }
-                relys.push(temp_hash_yaml2id[rely])
-            }
-            task.add_relys_by_ids(&relys)
+        // Form tasks
+        for ytask in &yaml_tasks {
+            let task = TaskWrapper::new(
+                ytask
+                    .inner
+                    .replace(None)
+                    .expect("[Fatal] Abnormal error occurs."),
+                &ytask.name,
+            );
+            yid2id.insert(ytask.yaml_id.clone(), task.get_id());
+            tasks.push(task);
         }
 
-        Ok(res)
+        for (index, ytask) in yaml_tasks.iter().enumerate() {
+            let afters: Vec<usize> = ytask
+                .afters
+                .iter()
+                .map(|after| yid2id.get(after).unwrap_or(&0).to_owned())
+                .collect();
+            // Task 0 won't exist in normal state, thus this will trigger an RelyTaskIllegal Error later.
+
+            let froms: Vec<usize> = ytask
+                .froms
+                .iter()
+                .map(|from| yid2id.get(from).unwrap_or(&0).to_owned())
+                .collect();
+
+            tasks[index].exec_after_id(&afters);
+            tasks[index].input_from_id(&froms);
+        }
+
+        Ok(tasks)
     }
 }
