@@ -12,7 +12,7 @@ mod engine;
 mod task;
 
 pub use engine::{DagEngine, DagError, EnvVar, RunningError, YamlError, YamlFormatError};
-pub use task::TaskTrait;
+pub use task::{Inputval, Retval, RunScript, RunType, TaskTrait, TaskWrapper};
 
 use simplelog::*;
 use std::{
@@ -20,6 +20,21 @@ use std::{
     fs::{create_dir, File},
 };
 
+/// Init a logger.
+///
+/// # Example
+/// ```rust
+/// // Default path (HOME/.dagrs/dagrs.log)
+/// init_logger(None);
+/// // or
+/// init_logger(Some("./dagrs.log"));
+/// ```
+///
+/// **Note**, this function shall only be called once.
+///
+/// Default logger is [Simplelog](https://crates.io/crates/simplelog), you can
+/// also use other log implementations. Just remember to initialize them before
+/// running dagrs.
 pub fn init_logger(logpath: Option<&str>) {
     let logpath = if let Some(s) = logpath {
         s.to_owned()

@@ -30,7 +30,7 @@ pub struct YamlTask {
 
 impl TaskTrait for YamlTaskInner {
     fn run(&self, input: Inputval, _env: EnvVar) -> Retval {
-        if let Ok(res) = self.run.exec(input) {
+        if let Ok(res) = self.run.exec(Some(input)) {
             Retval::new(res)
         } else {
             Retval::empty()
