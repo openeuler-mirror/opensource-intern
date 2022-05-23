@@ -1,10 +1,10 @@
-use crate::engine::{DagError, RunningError, EnvVar};
+use crate::engine::{DagError, EnvVar, RunningError};
 
 use super::{Inputval, Retval};
 use deno_core::{serde_json, serde_v8, v8, JsRuntime, RuntimeOptions};
 use lazy_static::lazy_static;
 use std::process::Command;
-use std::sync::{Mutex};
+use std::sync::Mutex;
 
 /// Task Trait.
 ///
@@ -14,8 +14,6 @@ pub trait TaskTrait {
 }
 
 /// Wrapper for task that impl [`TaskTrait`].
-///
-/// Since task will be executed in seperated threads, `send` is needed.
 pub struct TaskWrapper {
     id: usize,
     name: String,
@@ -32,7 +30,8 @@ impl TaskWrapper {
     /// let t = TaskWrapper::new(Task{}, "Demo Task")
     /// ```
     ///
-    /// `Task` is a struct that impl [`TaskTrait`].
+    /// `Task` is a struct that impl [`TaskTrait`]. Since task will be
+    ///  executed in seperated threads, [`send`] and [`sync`] is needed.
     ///
     /// **Note:** This method will take the ownership of struct that impl [`TaskTrait`].
     pub fn new(task: impl TaskTrait + 'static + Send + Sync, name: &str) -> Self {
@@ -49,7 +48,7 @@ impl TaskWrapper {
     /// Tasks that shall be executed before this one.
     ///
     /// # Example
-    /// ```
+    /// ```rust
     /// let mut t1 = TaskWrapper::new(T1{}, "Task 1");
     /// let mut t2 = TaskWrapper::new(T2{}, "Task 2");
     /// t2.exec_after(&[&t1]);
@@ -60,6 +59,14 @@ impl TaskWrapper {
     }
 
     /// Input will come from the given tasks' exec result.
+    ///
+    /// # Example
+    /// ```rust
+    /// t3.exec_after(&[&t1, &t2, &t4])
+    /// t3.input_from(&[&t1, &t2]);
+    /// ```
+    ///
+    /// In aboving code, t3 will have input from `t1` and `t2`'s return value.
     pub fn input_from(&mut self, needed: &[&TaskWrapper]) {
         self.input_from.extend(needed.iter().map(|t| t.get_id()))
     }
@@ -123,7 +130,9 @@ pub struct RunScript {
     executor: RunType,
 }
 
-/// Run script type, now a script can be run in `sh` or embeded `deno`
+/// Run script type, now a script can be run in `sh` or embeded `deno`.
+///
+/// **Note** this features is not quite perfect, or rather, need lots of improvements.
 #[derive(Debug)]
 pub enum RunType {
     SH,
@@ -131,11 +140,16 @@ pub enum RunType {
 }
 
 impl RunScript {
-    /// Generate a new run script
+    /// Generate a new run script.
     ///
     /// # Example
     /// ```
-    /// let r = RunScript::new("echo Hello!", RunType::SH);
+    /// // `script` can be a commnad
+    /// let r = RunScript::new("echo Hello", RunType::SH);
+    /// r.exec();
+    ///
+    /// // or a script path
+    /// let r = RunScript::new("test/test.sh", RunType::SH);
     /// r.exec();
     /// ```
     pub fn new(script: &str, executor: RunType) -> Self {
@@ -149,35 +163,38 @@ impl RunScript {
     ///
     /// # Example
     /// ```
-    /// let r = RunScript::new("echo Hello!", RunType::SH);
+    /// let r = RunScript::new("echo Hello", RunType::SH);
     /// r.exec();
     /// ```
-    pub fn exec(&self, input: Inputval) -> Result<String, DagError> {
+    /// If execution succeeds, it returns the result in [`String`] type, or it
+    /// returns a [`DagError`].
+    pub fn exec(&self, input: Option<Inputval>) -> Result<String, DagError> {
         let res = match self.executor {
             RunType::SH => self.run_sh(input),
             RunType::DENO => self.run_deno(input),
         };
-        
+
         res
     }
 
-    fn run_sh(&self, input: Inputval) -> Result<String, DagError> {
+    fn run_sh(&self, input: Option<Inputval>) -> Result<String, DagError> {
         let mut cmd = format!("{} ", self.script);
-        input
-            .get_iter()
-            .map(|input| {
-                cmd.push_str(
-                if let Some(dmap) = input {
-                    if let Some(str) = dmap.get::<String>() {
-                        str
+        if let Some(input) = input {
+            input
+                .get_iter()
+                .map(|input| {
+                    cmd.push_str(if let Some(dmap) = input {
+                        if let Some(str) = dmap.get::<String>() {
+                            str
+                        } else {
+                            ""
+                        }
                     } else {
                         ""
-                    }
-                } else {
-                    ""
+                    })
                 })
-            }).count();
-        
+                .count();
+        }
 
         let res = Command::new("sh")
             .arg("-c")
@@ -188,7 +205,7 @@ impl RunScript {
         res.map_err(|err| err.into())
     }
 
-    fn run_deno(&self, _input: Inputval) -> Result<String, DagError> {
+    fn run_deno(&self, _input: Option<Inputval>) -> Result<String, DagError> {
         let script = self.script.clone();
         let mut context = JsRuntime::new(RuntimeOptions {
             ..Default::default()

@@ -45,9 +45,7 @@ impl DagEngine {
     /// # Example
     /// ```
     /// let dagrs = DagEngine::new();
-    /// dagrs.add_task(task1);
-    /// dagrs.add_task(task2);
-    /// dagrs.run("test/test_dag.yaml");
+    /// dagrs.add_tasks(vec![task1, task2]);
     /// ```
     ///
     /// Here `task1` and `task2` are user defined task wrapped in [`TaskWrapper`].
@@ -64,7 +62,7 @@ impl DagEngine {
     /// # Example
     /// ```
     /// let dagrs = DagEngine::new();
-    /// dagrs.run_from_yaml("test/test_dag.yaml");
+    /// dagrs.run_from_yaml("test/test_dag1.yaml");
     /// ```
     ///
     /// This method is similar to `run`, but read tasks from yaml file,
@@ -74,12 +72,8 @@ impl DagEngine {
         self.run()
     }
 
-    /// Read tasks into engine throuh yaml
-    ///
-    /// # Example
-    /// ```
-    /// let yaml_tasks = dagrs.read_task("test/test.yaml");
-    /// ```
+    /// Read tasks into engine through yaml.
+    /// 
     /// This operation will read all info in yaml file into `dagrs.tasks` if no error occurs.
     fn read_tasks(&mut self, filename: &str) -> Result<(), DagError> {
         let tasks = YamlTask::from_yaml(filename)?;
@@ -113,14 +107,14 @@ impl DagEngine {
         self.execstate_store.insert(id, state);
     }
 
-    /// Fetch given task's [`ExecState`], this won't delete it from the hash map.
+    /// Fetch a task's [`ExecState`], this won't delete it from the hash map.
     fn pull_execstate(&self, id: &usize) -> &ExecState {
         self.execstate_store
             .get(id)
             .expect("[Error] Pull execstate fails")
     }
 
-    /// Prepare given task's [`Inputval`].
+    /// Prepare a task's [`Inputval`].
     fn form_input(&self, id: &usize) -> Inputval {
         let froms = self.tasks[id].get_input_from_list();
         Inputval::new(
@@ -131,12 +125,8 @@ impl DagEngine {
         )
     }
 
-    /// create rely map between tasks
+    /// create rely map between tasks.
     ///
-    /// # Example
-    /// ```
-    /// dagrs.create_graph();
-    /// ```
     /// This operation will initialize `dagrs.rely_graph` if no error occurs.
     fn create_graph(&mut self) -> Result<(), DagError> {
         let size = self.tasks.len();
@@ -165,13 +155,10 @@ impl DagEngine {
         Ok(())
     }
 
-    /// Check whether it's DAG or not
+    /// Check whether it's DAG or not.
     ///
-    /// # Example
-    /// ```
-    /// dagrs.check_dag();
-    /// ```
-    /// This opeartions will judge the graph and give out a execution sequence if possible.
+    /// If it is a DAG, dagrs will start executing tasks in a feasible order and 
+    /// return true when execution done, or it return a false.
     async fn check_dag(&mut self) -> bool {
         if let Some(seq) = self.rely_graph.topo_sort() {
             let seq = seq
@@ -214,14 +201,6 @@ impl DagEngine {
     }
 
     /// Print possible execution sequnces.
-    ///
-    /// # Example
-    /// ```
-    /// if let Some(seq) = self.rely_graph.topo_sort() {
-    ///     self.print_seq(&seq);
-    ///     ...
-    /// }
-    /// ```
     fn print_seq(&self, seq: &Vec<usize>) {
         let mut res = String::from("[Start]");
         seq.iter()

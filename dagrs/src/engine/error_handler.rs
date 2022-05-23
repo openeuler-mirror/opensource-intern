@@ -1,4 +1,4 @@
-//! A simple error handle, can output error type and info
+//! A simple error handler implementation.
 
 use thiserror::Error;
 
@@ -6,7 +6,6 @@ use thiserror::Error;
 /// A synthesis of all possible errors.
 pub enum DagError {
     /// IO Error, like file not exist, etc.
-    /// Here we simplefy it to a message(String).
     #[error("{0}")]
     IOError(#[from] std::io::Error),
     /// YAML Error, like format error, etc.
@@ -51,18 +50,18 @@ impl DagError {
     ///
     /// # Example
     /// ```
-    /// DagError::format_error(FormatError::NoName("a"));
+    /// DagError::format_error(YamlFormatError::NoName("a".to_string()));
     /// ```
-    /// This will throw a error that says, task 'a' has no name field.
+    /// This will throw a error that says, yaml task 'a' has no name field.
     pub fn format_error(error: YamlFormatError) -> Self {
         Self::YamlError(YamlError::YamlFormatError(error))
     }
 
-    /// Throw a inner error
+    /// Throw a running error
     ///
     /// # Example
     /// ```
-    /// DagError::inner_error(InnerError::RelyTaskIllegal("task 1"))
+    /// DagError::running_error(RunningError::RelyTaskIllegal("task 1".to_string()))
     /// ```
     /// This will throw a error that says, task with name "task 1" has non-exist rely tasks.
     pub fn running_error(error: RunningError) -> Self {

@@ -1,5 +1,3 @@
-#![doc = include_str!("../README.md")]
-
 use clap::Parser;
 use dagrs::{init_logger, DagEngine};
 use log::*;
@@ -9,8 +7,7 @@ use log::*;
 /// Command Line input
 struct Args {
     /// YAML file path
-    #[clap(short, long)]
-    filepath: String,
+    file: String,
     /// Log file path
     #[clap(short, long)]
     logpath: Option<String>,
@@ -22,7 +19,7 @@ fn main() {
 
     init_logger(args.logpath.as_deref());
 
-    if let Err(e) = dagrs.run_from_yaml(&args.filepath) {
+    if let Err(e) = dagrs.run_from_yaml(&args.file) {
         error!("[Error] {}", e);
     }
 }
