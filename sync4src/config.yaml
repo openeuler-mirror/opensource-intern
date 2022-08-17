@@ -1,0 +1,9 @@
+source:
+  url: git@github.com:greenhandatsjtu/sync4src.git
+  username: git
+  ssh_key: /home/sunhengke/.ssh/id_rsa
+
+target:
+  url: https://gitee.com/sunhengke1/sync4src.git
+  username: sunhengke1
+  password: test123
