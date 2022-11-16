@@ -235,13 +235,13 @@ fn parse_normal(patch_arr: Vec<String>, file_to_patch: &mut Vec<String>) {
             for cap in re.captures_iter(line) {
                 op = cap[3].parse().unwrap();
                 opl_1 = cap[1].parse().unwrap();
-                if cap.get(2) != None {
+                if Option::is_some(&cap.get(2)) {
                     opl_2 = cap[2].parse().unwrap();
                 } else {
                     opl_2 = -1;
                 }
                 opr_1 = cap[4].parse().unwrap();
-                if cap.get(5) != None {
+                if Option::is_some(&cap.get(5)) {
                     opr_2 = cap[5].parse().unwrap();
                 } else {
                     opr_2 = -1;
@@ -329,7 +329,7 @@ fn parse_ed(patch_arr: Vec<String>, file_to_patch: &mut Vec<String>) {
             for cap in re.captures_iter(&line) {
                 start_line = cap[1].parse().unwrap();
                 op = cap[3].parse().unwrap();
-                if cap.get(2) != None {
+                if Option::is_some(&cap.get(2)) {
                     end_line = cap[2].parse().unwrap();
                 } else {
                     end_line = -1;
