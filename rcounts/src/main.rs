@@ -5,6 +5,7 @@ use git2::Repository;
 use std::{
     fs::File,
     io::{stdin, Write},
+    vec,
 };
 
 use tokei::{Config, LanguageType, Languages};
@@ -20,6 +21,7 @@ struct Blob {
     files: usize,
 }
 
+// 读取用户输入的组织名称
 fn org_name() -> Result<String> {
     println!("Input organization name:");
     let mut buffer = String::new();
@@ -31,6 +33,7 @@ fn org_name() -> Result<String> {
     Ok(org)
 }
 
+// 读取用户输入的token
 fn get_token() -> Result<String> {
     println!("Input token:");
     let mut buffer = String::new();
@@ -42,7 +45,8 @@ fn get_token() -> Result<String> {
     Ok(res)
 }
 
-fn choose() -> Result<String> {
+// 读取用户输入的选择（Gitee还是GitHub）
+fn choose_ways() -> Result<String> {
     let mut buffer = String::new();
     stdin().read_line(&mut buffer)?;
     let res = match buffer.trim_end() {
@@ -52,6 +56,7 @@ fn choose() -> Result<String> {
     Ok(res)
 }
 
+// 获得单个仓库的url
 fn get_dep() -> Result<String> {
     println!("input url:");
     let mut buffer = String::new();
@@ -63,14 +68,15 @@ fn get_dep() -> Result<String> {
     Ok(res)
 }
 
-fn get(org1: &str, token1: &str, which: i32) -> Vec<String> {
+// 获取组织的所有信息
+fn get_all_information(orgname: &str, usertoken: &str, whichway: i32) -> Vec<String> {
     let mut page = 1;
-    let mut j: Vec<String> = Vec::new();
-    let org = org1.to_string();
-    let token = token1.to_string();
+    let mut information: Vec<String> = Vec::new();
+    let org = orgname.to_string();
+    let token = usertoken.to_string();
     let api: &str;
     let rep;
-    if which == 1 {
+    if whichway == 1 {
         api = "https://gitee.com/api/v5/orgs/";
         rep = "/repos?access_token=";
     } else {
@@ -78,17 +84,19 @@ fn get(org1: &str, token1: &str, which: i32) -> Vec<String> {
         rep = "/repos?YOUR-TOKEN=";
     }
     loop {
-        let url = api.to_string()
-            + &org
-            + rep
-            + &token
-            + "&type=all&page="
-            + &page.to_string()
-            + "&per_page=100";
+        let url = format!(
+            "{}{}{}{}&type=all&page={}&per_page=100",
+            api, org, rep, token, page
+        );
         let response = DefaultHttpRequest::get_from_url_str(url)
             .unwrap()
             .send()
             .unwrap();
+        if response.status_code == 404 {
+            panic!("Error organization name!");
+        } else if response.status_code == 401 {
+            panic!("Error token!");
+        }
         let body = String::from_utf8(response.body);
         let p = body.unwrap();
         if p == "[]" {
@@ -97,26 +105,27 @@ fn get(org1: &str, token1: &str, which: i32) -> Vec<String> {
             }
             break;
         }
-        j.push(p);
+        information.push(p);
         page += 1;
     }
-    return j;
+    information
 }
 
+// 从获取的所有信息中取出所有仓库的url
 fn get_url(all: Vec<String>) -> Vec<String> {
     let mut url: Vec<String> = Vec::new();
     for page in all {
         let res = json::parse(&page).unwrap();
         let mut i = 0;
-
         while !res[i]["full_name"].is_empty() {
             url.push(res[i]["full_name"].to_string());
             i += 1;
         }
     }
-    return url;
+    url
 }
 
+// 将组织的仓库clone到本地
 fn clone_org(url: &Vec<String>) {
     for i in url {
         let url2 = "https://gitee.com/".to_string() + i;
@@ -129,25 +138,140 @@ fn clone_org(url: &Vec<String>) {
     }
 }
 
+// 将单个仓库clone到本地
 fn clone_dep(url: String) -> String {
     let name1 = url.split('/');
     let mut rep_name = "";
-    for j in name1.rev() {
+    if let Some(j) = name1.rev().next() {
         let name = j.split('.');
         for i in name.rev() {
             rep_name = i;
         }
-        break;
     }
-    let location = "./".to_string() + &rep_name;
+    let location = "./".to_string() + rep_name;
     println!("{}", location);
     let _repo = match Repository::clone(&url, location) {
         Ok(repo) => repo,
         Err(e) => panic!("failed to clone: {}", e),
     };
-    return rep_name.to_string();
+    rep_name.to_string()
 }
 
+// 将统计报告写入markdown文件
+fn make_markdown(mut md: &File, part: &str, analyse: Vec<String>) {
+    let mut language = "".to_string();
+    let mut file = "".to_string();
+    let mut line = "".to_string();
+    let mut code = "".to_string();
+    let mut comment = "".to_string();
+    let mut blank = "".to_string();
+    if !analyse.is_empty() {
+        language = analyse.get(0).unwrap().to_string();
+        file = analyse.get(1).unwrap().to_string();
+        line = analyse.get(2).unwrap().to_string();
+        code = analyse.get(3).unwrap().to_string();
+        comment = analyse.get(4).unwrap().to_string();
+        blank = analyse.get(5).unwrap().to_string();
+    }
+    if part == "head" {
+        md.write_all("|language| Files |Lines |Code |Comments |Blanks|\n".as_bytes())
+            .unwrap();
+        md.write_all(
+        "|    :----:   |    :----:   |    :----:   |    :----:   |    :----:   |    :----:   |\n".as_bytes())
+            .unwrap();
+    } else if part == "main" || part == "main_total" {
+        md.write_all("|".as_bytes()).unwrap();
+        md.write_all(language.as_bytes()).unwrap();
+        md.write_all("|".as_bytes()).unwrap();
+        md.write_all(file.as_bytes()).unwrap();
+        md.write_all("|".as_bytes()).unwrap();
+        md.write_all(line.as_bytes()).unwrap();
+        md.write_all("|".as_bytes()).unwrap();
+        md.write_all(code.as_bytes()).unwrap();
+        md.write_all("|".as_bytes()).unwrap();
+        md.write_all(comment.as_bytes()).unwrap();
+        md.write_all("|".as_bytes()).unwrap();
+        md.write_all(blank.as_bytes()).unwrap();
+        md.write_all("|".as_bytes()).unwrap();
+        md.write_all("\n".as_bytes()).unwrap();
+    } else if part == "branch_head" {
+        md.write_all("|".as_bytes()).unwrap();
+        md.write_all(language.as_bytes()).unwrap();
+        md.write_all("|\n".as_bytes()).unwrap();
+    } else if part == "branch_total" || part == "branch" {
+        md.write_all("|".as_bytes()).unwrap();
+        md.write_all(language.as_bytes()).unwrap();
+        md.write_all("|".as_bytes()).unwrap();
+        md.write_all(file.as_bytes()).unwrap();
+        md.write_all("|".as_bytes()).unwrap();
+        md.write_all(line.as_bytes()).unwrap();
+        md.write_all("|".as_bytes()).unwrap();
+        md.write_all(code.as_bytes()).unwrap();
+        md.write_all("|".as_bytes()).unwrap();
+        md.write_all(comment.as_bytes()).unwrap();
+        md.write_all("|".as_bytes()).unwrap();
+        md.write_all(blank.as_bytes()).unwrap();
+        md.write_all("|".as_bytes()).unwrap();
+        md.write_all("\n".as_bytes()).unwrap();
+    } else {
+        panic!("Markdown creation failure");
+    }
+}
+
+// 将统计报告写入csv文件
+fn make_csv(mut csv: &File, part: &str, analyse: Vec<String>) {
+    let mut language = "".to_string();
+    let mut file = "".to_string();
+    let mut line = "".to_string();
+    let mut code = "".to_string();
+    let mut comment = "".to_string();
+    let mut blank = "".to_string();
+    if !analyse.is_empty() {
+        language = analyse.get(0).unwrap().to_string();
+        file = analyse.get(1).unwrap().to_string();
+        line = analyse.get(2).unwrap().to_string();
+        code = analyse.get(3).unwrap().to_string();
+        comment = analyse.get(4).unwrap().to_string();
+        blank = analyse.get(5).unwrap().to_string();
+    }
+    if part == "head" {
+        csv.write_all("language,Files,Lines,Code,Comments,Blanks\n".as_bytes())
+            .unwrap();
+    } else if part == "main" || part == "main_total" {
+        csv.write_all(language.as_bytes()).unwrap();
+        csv.write_all(",".as_bytes()).unwrap();
+        csv.write_all(file.as_bytes()).unwrap();
+        csv.write_all(",".as_bytes()).unwrap();
+        csv.write_all(line.as_bytes()).unwrap();
+        csv.write_all(",".as_bytes()).unwrap();
+        csv.write_all(code.as_bytes()).unwrap();
+        csv.write_all(",".as_bytes()).unwrap();
+        csv.write_all(comment.as_bytes()).unwrap();
+        csv.write_all(",".as_bytes()).unwrap();
+        csv.write_all(blank.as_bytes()).unwrap();
+        csv.write_all("\n".as_bytes()).unwrap();
+    } else if part == "branch_head" {
+        csv.write_all(language.as_bytes()).unwrap();
+        csv.write_all("\n".as_bytes()).unwrap();
+    } else if part == "branch_total" || part == "branch" {
+        csv.write_all(language.as_bytes()).unwrap();
+        csv.write_all(",".as_bytes()).unwrap();
+        csv.write_all(file.as_bytes()).unwrap();
+        csv.write_all(",".as_bytes()).unwrap();
+        csv.write_all(line.as_bytes()).unwrap();
+        csv.write_all(",".as_bytes()).unwrap();
+        csv.write_all(code.as_bytes()).unwrap();
+        csv.write_all(",".as_bytes()).unwrap();
+        csv.write_all(comment.as_bytes()).unwrap();
+        csv.write_all(",".as_bytes()).unwrap();
+        csv.write_all(blank.as_bytes()).unwrap();
+        csv.write_all("\n".as_bytes()).unwrap();
+    } else {
+        panic!("Csv creation failure");
+    }
+}
+
+// 生成tokei的统计报告
 fn tokei(path: &str) {
     println!("results are as follows:");
     let paths = &[path];
@@ -155,7 +279,7 @@ fn tokei(path: &str) {
     let config = Config::from_config_files();
     let mut languages = Languages::new();
     languages.get_statistics(paths, excluded, &config);
-    let ser = languages;
+    let lang = languages;
     println!(
         "{:=^20}{:=^20}{:=^20}{:=^20}{:=^20}{:=^20}",
         "=", "=", "=", "=", "=", "="
@@ -171,40 +295,40 @@ fn tokei(path: &str) {
     let mut branch: Vec<Blob> = Vec::new();
     let mut main: Vec<Blob> = Vec::new();
     let mut total: [usize; 5] = [0, 0, 0, 0, 0];
-    for r in ser {
+    for each in lang {
         let mut count_file = 0;
         let mut count_line = 0;
         let mut count_code = 0;
         let mut count_commit = 0;
         let mut count_blank = 0;
-        for s in r.1.reports {
+        for report in each.1.reports {
             total[0] += 1;
-            total[1] += s.stats.lines();
-            total[2] += s.stats.code;
-            total[3] += s.stats.comments;
-            total[4] += s.stats.blanks;
+            total[1] += report.stats.lines();
+            total[2] += report.stats.code;
+            total[3] += report.stats.comments;
+            total[4] += report.stats.blanks;
             count_file += 1;
-            count_line += s.stats.lines();
-            count_code += s.stats.code;
-            count_commit += s.stats.comments;
-            count_blank += s.stats.blanks;
-            if s.stats.blobs.is_empty() {
+            count_line += report.stats.lines();
+            count_code += report.stats.code;
+            count_commit += report.stats.comments;
+            count_blank += report.stats.blanks;
+            if report.stats.blobs.is_empty() {
                 continue;
             } else {
-                '_a: for dd in s.stats.blobs {
+                '_a: for b in report.stats.blobs {
                     let blob2 = Blob {
-                        language: r.0,
-                        child_language: dd.0,
-                        lines: dd.1.lines(),
-                        code: dd.1.code,
-                        comments: dd.1.comments,
-                        blanks: dd.1.blanks,
+                        language: each.0,
+                        child_language: b.0,
+                        lines: b.1.lines(),
+                        code: b.1.code,
+                        comments: b.1.comments,
+                        blanks: b.1.blanks,
                         files: 1,
                     };
 
-                    let f = branch.len();
+                    let l = branch.len();
                     let mut n = 0;
-                    while n != f {
+                    while n != l {
                         if blob2.child_language == branch[n].child_language {
                             branch[n].lines += blob2.lines;
                             branch[n].code += blob2.code;
@@ -221,8 +345,8 @@ fn tokei(path: &str) {
         }
         if count_file != 0 {
             let blob1 = Blob {
-                language: r.0,
-                child_language: r.0,
+                language: each.0,
+                child_language: each.0,
                 lines: count_line,
                 code: count_code,
                 comments: count_commit,
@@ -234,18 +358,10 @@ fn tokei(path: &str) {
     }
     let md_path = path.to_string() + ".md";
     let csv_path = path.to_string() + ".csv";
-    let mut md = File::create(md_path).unwrap();
-    let mut csv = File::create(csv_path).unwrap();
-    md.write_all("|language| Files |Lines |Code |Comments |Blanks|\n".as_bytes())
-        .unwrap();
-    md.write_all(
-        "|    :----:   |    :----:   |    :----:   |    :----:   |    :----:   |    :----:   |\n"
-            .as_bytes(),
-    )
-    .unwrap();
-
-    csv.write_all("language,Files,Lines,Code,Comments,Blanks\n".as_bytes())
-        .unwrap();
+    let md = File::create(md_path).unwrap();
+    let csv = File::create(csv_path).unwrap();
+    make_markdown(&md, "head", vec![]);
+    make_csv(&csv, "head", vec![]);
     for a in main {
         println!(
             "{:<20}{:>20}{:>20}{:>20}{:>20}{:>20}",
@@ -256,68 +372,61 @@ fn tokei(path: &str) {
             a.comments,
             a.blanks
         );
-        md.write_all("|".as_bytes()).unwrap();
-        md.write_all(a.language.to_string().as_bytes()).unwrap();
-        md.write_all("|".as_bytes()).unwrap();
-        md.write_all(a.files.to_string().as_bytes()).unwrap();
-        md.write_all("|".as_bytes()).unwrap();
-        md.write_all(a.lines.to_string().as_bytes()).unwrap();
-        md.write_all("|".as_bytes()).unwrap();
-        md.write_all(a.code.to_string().as_bytes()).unwrap();
-        md.write_all("|".as_bytes()).unwrap();
-        md.write_all(a.comments.to_string().as_bytes()).unwrap();
-        md.write_all("|".as_bytes()).unwrap();
-        md.write_all(a.blanks.to_string().as_bytes()).unwrap();
-        md.write_all("|".as_bytes()).unwrap();
-        md.write_all("\n".as_bytes()).unwrap();
-
-        csv.write_all(a.language.to_string().as_bytes()).unwrap();
-        csv.write_all(",".as_bytes()).unwrap();
-        csv.write_all(a.files.to_string().as_bytes()).unwrap();
-        csv.write_all(",".as_bytes()).unwrap();
-        csv.write_all(a.lines.to_string().as_bytes()).unwrap();
-        csv.write_all(",".as_bytes()).unwrap();
-        csv.write_all(a.code.to_string().as_bytes()).unwrap();
-        csv.write_all(",".as_bytes()).unwrap();
-        csv.write_all(a.comments.to_string().as_bytes()).unwrap();
-        csv.write_all(",".as_bytes()).unwrap();
-        csv.write_all(a.blanks.to_string().as_bytes()).unwrap();
-        csv.write_all("\n".as_bytes()).unwrap();
+        make_markdown(
+            &md,
+            "main",
+            vec![
+                a.language.to_string(),
+                a.files.to_string(),
+                a.lines.to_string(),
+                a.code.to_string(),
+                a.comments.to_string(),
+                a.blanks.to_string(),
+            ],
+        );
+        make_csv(
+            &csv,
+            "main",
+            vec![
+                a.language.to_string(),
+                a.files.to_string(),
+                a.lines.to_string(),
+                a.code.to_string(),
+                a.comments.to_string(),
+                a.blanks.to_string(),
+            ],
+        );
     }
-    md.write_all("|".as_bytes()).unwrap();
-    md.write_all("(total)".as_bytes()).unwrap();
-    md.write_all("|".as_bytes()).unwrap();
-    md.write_all(total[0].to_string().as_bytes()).unwrap();
-    md.write_all("|".as_bytes()).unwrap();
-    md.write_all(total[1].to_string().as_bytes()).unwrap();
-    md.write_all("|".as_bytes()).unwrap();
-    md.write_all(total[2].to_string().as_bytes()).unwrap();
-    md.write_all("|".as_bytes()).unwrap();
-    md.write_all(total[3].to_string().as_bytes()).unwrap();
-    md.write_all("|".as_bytes()).unwrap();
-    md.write_all(total[4].to_string().as_bytes()).unwrap();
-    md.write_all("|".as_bytes()).unwrap();
-    md.write_all("\n".as_bytes()).unwrap();
-
-    csv.write_all("(total)".as_bytes()).unwrap();
-    csv.write_all(",".as_bytes()).unwrap();
-    csv.write_all(total[0].to_string().as_bytes()).unwrap();
-    csv.write_all(",".as_bytes()).unwrap();
-    csv.write_all(total[1].to_string().as_bytes()).unwrap();
-    csv.write_all(",".as_bytes()).unwrap();
-    csv.write_all(total[2].to_string().as_bytes()).unwrap();
-    csv.write_all(",".as_bytes()).unwrap();
-    csv.write_all(total[3].to_string().as_bytes()).unwrap();
-    csv.write_all(",".as_bytes()).unwrap();
-    csv.write_all(total[4].to_string().as_bytes()).unwrap();
-    csv.write_all("\n".as_bytes()).unwrap();
+    make_markdown(
+        &md,
+        "main_total",
+        vec![
+            "(total)".to_string(),
+            total[0].to_string(),
+            total[1].to_string(),
+            total[2].to_string(),
+            total[3].to_string(),
+            total[4].to_string(),
+        ],
+    );
+    make_csv(
+        &csv,
+        "main_total",
+        vec![
+            "(total)".to_string(),
+            total[0].to_string(),
+            total[1].to_string(),
+            total[2].to_string(),
+            total[3].to_string(),
+            total[4].to_string(),
+        ],
+    );
     println!(
         "{:<20}{:>20}{:>20}{:>20}{:>20}{:>20}",
         "(total)", total[0], total[1], total[2], total[3], total[4]
     );
     let mut print = true;
-
-    if branch.len() != 0 {
+    if print && !branch.is_empty() {
         let mut lan = branch[0].language;
         let mut total_child: [usize; 5] = [0, 0, 0, 0, 0];
         println!(
@@ -325,15 +434,30 @@ fn tokei(path: &str) {
             "-", "-", "-", "-", "-", "-"
         );
         println!("{:<20}", branch[0].language.to_string());
-
-        md.write_all("|".as_bytes()).unwrap();
-        md.write_all(branch[0].language.to_string().as_bytes())
-            .unwrap();
-        md.write_all("|\n".as_bytes()).unwrap();
-
-        csv.write_all(branch[0].language.to_string().as_bytes())
-            .unwrap();
-        csv.write_all("\n".as_bytes()).unwrap();
+        make_markdown(
+            &md,
+            "branch_head",
+            vec![
+                branch[0].language.to_string(),
+                "".to_string(),
+                "".to_string(),
+                "".to_string(),
+                "".to_string(),
+                "".to_string(),
+            ],
+        );
+        make_csv(
+            &csv,
+            "branch_head",
+            vec![
+                branch[0].language.to_string(),
+                "".to_string(),
+                "".to_string(),
+                "".to_string(),
+                "".to_string(),
+                "".to_string(),
+            ],
+        );
         for b in branch {
             if lan == b.language {
                 print = false;
@@ -341,39 +465,30 @@ fn tokei(path: &str) {
                 print = true;
             }
             if print {
-                md.write_all("|".as_bytes()).unwrap();
-                md.write_all("(total)".as_bytes()).unwrap();
-                md.write_all("|".as_bytes()).unwrap();
-                md.write_all(total_child[0].to_string().as_bytes()).unwrap();
-                md.write_all("|".as_bytes()).unwrap();
-                md.write_all(total_child[1].to_string().as_bytes()).unwrap();
-                md.write_all("|".as_bytes()).unwrap();
-                md.write_all(total_child[2].to_string().as_bytes()).unwrap();
-                md.write_all("|".as_bytes()).unwrap();
-                md.write_all(total_child[3].to_string().as_bytes()).unwrap();
-                md.write_all("|".as_bytes()).unwrap();
-                md.write_all(total_child[4].to_string().as_bytes()).unwrap();
-                md.write_all("|".as_bytes()).unwrap();
-                md.write_all("\n".as_bytes()).unwrap();
-
-                csv.write_all("(total)".as_bytes()).unwrap();
-                csv.write_all(",".as_bytes()).unwrap();
-                csv.write_all(total_child[0].to_string().as_bytes())
-                    .unwrap();
-                csv.write_all(",".as_bytes()).unwrap();
-                csv.write_all(total_child[1].to_string().as_bytes())
-                    .unwrap();
-                csv.write_all(",".as_bytes()).unwrap();
-                csv.write_all(total_child[2].to_string().as_bytes())
-                    .unwrap();
-                csv.write_all(",".as_bytes()).unwrap();
-                csv.write_all(total_child[3].to_string().as_bytes())
-                    .unwrap();
-                csv.write_all(",".as_bytes()).unwrap();
-                csv.write_all(total_child[4].to_string().as_bytes())
-                    .unwrap();
-                csv.write_all("\n".as_bytes()).unwrap();
-
+                make_markdown(
+                    &md,
+                    "branch_total",
+                    vec![
+                        "(total)".to_string(),
+                        total_child[0].to_string(),
+                        total_child[1].to_string(),
+                        total_child[2].to_string(),
+                        total_child[3].to_string(),
+                        total_child[4].to_string(),
+                    ],
+                );
+                make_csv(
+                    &csv,
+                    "branch_total",
+                    vec![
+                        "(total)".to_string(),
+                        total_child[0].to_string(),
+                        total_child[1].to_string(),
+                        total_child[2].to_string(),
+                        total_child[3].to_string(),
+                        total_child[4].to_string(),
+                    ],
+                );
                 println!(
                     "{:<20}{:>20}{:>20}{:>20}{:>20}{:>20}",
                     "(total)",
@@ -388,11 +503,30 @@ fn tokei(path: &str) {
                     "-", "-", "-", "-", "-", "-"
                 );
                 println!("{:<20}", b.language.to_string());
-                md.write_all("|".as_bytes()).unwrap();
-                md.write_all(b.language.to_string().as_bytes()).unwrap();
-                md.write_all("|\n".as_bytes()).unwrap();
-                csv.write_all(b.language.to_string().as_bytes()).unwrap();
-                csv.write_all("\n".as_bytes()).unwrap();
+                make_markdown(
+                    &md,
+                    "branch_head",
+                    vec![
+                        b.language.to_string(),
+                        "".to_string(),
+                        "".to_string(),
+                        "".to_string(),
+                        "".to_string(),
+                        "".to_string(),
+                    ],
+                );
+                make_csv(
+                    &csv,
+                    "branch_head",
+                    vec![
+                        b.language.to_string(),
+                        "".to_string(),
+                        "".to_string(),
+                        "".to_string(),
+                        "".to_string(),
+                        "".to_string(),
+                    ],
+                );
                 total_child[0] = 0;
                 total_child[1] = 0;
                 total_child[2] = 0;
@@ -414,70 +548,55 @@ fn tokei(path: &str) {
                 b.comments,
                 b.blanks
             );
-            md.write_all("|".as_bytes()).unwrap();
-            md.write_all(b.child_language.to_string().as_bytes())
-                .unwrap();
-            md.write_all("|".as_bytes()).unwrap();
-            md.write_all(b.files.to_string().as_bytes()).unwrap();
-            md.write_all("|".as_bytes()).unwrap();
-            md.write_all(b.lines.to_string().as_bytes()).unwrap();
-            md.write_all("|".as_bytes()).unwrap();
-            md.write_all(b.code.to_string().as_bytes()).unwrap();
-            md.write_all("|".as_bytes()).unwrap();
-            md.write_all(b.comments.to_string().as_bytes()).unwrap();
-            md.write_all("|".as_bytes()).unwrap();
-            md.write_all(b.blanks.to_string().as_bytes()).unwrap();
-            md.write_all("|".as_bytes()).unwrap();
-            md.write_all("\n".as_bytes()).unwrap();
-
-            csv.write_all(b.child_language.to_string().as_bytes())
-                .unwrap();
-            csv.write_all(",".as_bytes()).unwrap();
-            csv.write_all(b.files.to_string().as_bytes()).unwrap();
-            csv.write_all(",".as_bytes()).unwrap();
-            csv.write_all(b.lines.to_string().as_bytes()).unwrap();
-            csv.write_all(",".as_bytes()).unwrap();
-            csv.write_all(b.code.to_string().as_bytes()).unwrap();
-            csv.write_all(",".as_bytes()).unwrap();
-            csv.write_all(b.comments.to_string().as_bytes()).unwrap();
-            csv.write_all(",".as_bytes()).unwrap();
-            csv.write_all(b.blanks.to_string().as_bytes()).unwrap();
-            csv.write_all("\n".as_bytes()).unwrap();
+            make_markdown(
+                &md,
+                "branch",
+                vec![
+                    b.child_language.to_string(),
+                    b.files.to_string(),
+                    b.lines.to_string(),
+                    b.code.to_string(),
+                    b.comments.to_string(),
+                    b.blanks.to_string(),
+                ],
+            );
+            make_csv(
+                &csv,
+                "branch",
+                vec![
+                    b.child_language.to_string(),
+                    b.files.to_string(),
+                    b.lines.to_string(),
+                    b.code.to_string(),
+                    b.comments.to_string(),
+                    b.blanks.to_string(),
+                ],
+            );
         }
-
-        md.write_all("|".as_bytes()).unwrap();
-        md.write_all("(total)".as_bytes()).unwrap();
-        md.write_all("|".as_bytes()).unwrap();
-        md.write_all(total_child[0].to_string().as_bytes()).unwrap();
-        md.write_all("|".as_bytes()).unwrap();
-        md.write_all(total_child[1].to_string().as_bytes()).unwrap();
-        md.write_all("|".as_bytes()).unwrap();
-        md.write_all(total_child[2].to_string().as_bytes()).unwrap();
-        md.write_all("|".as_bytes()).unwrap();
-        md.write_all(total_child[3].to_string().as_bytes()).unwrap();
-        md.write_all("|".as_bytes()).unwrap();
-        md.write_all(total_child[4].to_string().as_bytes()).unwrap();
-        md.write_all("|".as_bytes()).unwrap();
-        md.write_all("\n".as_bytes()).unwrap();
-
-        csv.write_all("(total)".as_bytes()).unwrap();
-        csv.write_all(",".as_bytes()).unwrap();
-        csv.write_all(total_child[0].to_string().as_bytes())
-            .unwrap();
-        csv.write_all(",".as_bytes()).unwrap();
-        csv.write_all(total_child[1].to_string().as_bytes())
-            .unwrap();
-        csv.write_all(",".as_bytes()).unwrap();
-        csv.write_all(total_child[2].to_string().as_bytes())
-            .unwrap();
-        csv.write_all(",".as_bytes()).unwrap();
-        csv.write_all(total_child[3].to_string().as_bytes())
-            .unwrap();
-        csv.write_all(",".as_bytes()).unwrap();
-        csv.write_all(total_child[4].to_string().as_bytes())
-            .unwrap();
-        csv.write_all("\n".as_bytes()).unwrap();
-
+        make_markdown(
+            &md,
+            "branch_total",
+            vec![
+                "(total)".to_string(),
+                total_child[0].to_string(),
+                total_child[1].to_string(),
+                total_child[2].to_string(),
+                total_child[3].to_string(),
+                total_child[4].to_string(),
+            ],
+        );
+        make_csv(
+            &csv,
+            "branch_total",
+            vec![
+                "(total)".to_string(),
+                total_child[0].to_string(),
+                total_child[1].to_string(),
+                total_child[2].to_string(),
+                total_child[3].to_string(),
+                total_child[4].to_string(),
+            ],
+        );
         println!(
             "{:<20}{:>20}{:>20}{:>20}{:>20}{:>20}",
             "(total)",
@@ -495,29 +614,110 @@ fn main() {
     println!(
         "Enter 2 to perform code aggregate statistics for all warehouses in the organization:"
     );
-    let choose1 = choose().unwrap();
+    let choose1 = choose_ways().unwrap();
     if choose1 == "1" {
         let url = get_dep().unwrap();
         let path = clone_dep(url);
         tokei(&path);
     } else if choose1 == "2" {
         println!("Enter 1 for gitee, enter 2 for github:");
-        let choose2 = choose().unwrap();
+        let choose2 = choose_ways().unwrap();
         let mut which = 0;
-        if choose2 == "1" {
+        if which == 0 && choose2 == "1" {
             which = 1;
-        } else if choose2 == "2" {
+        } else if which == 0 && choose2 == "2" {
             which = 2;
         } else {
             panic!("Please input correctly!");
         }
         let org = org_name().unwrap();
         let token = get_token().unwrap();
-        let x = get(&org, &token, which);
-        let url = get_url(x);
+        let information = get_all_information(&org, &token, which);
+        let url = get_url(information);
         clone_org(&url);
         tokei(&org);
     } else {
         panic!("Please input correctly!");
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use std::{io::{Read, BufReader, BufRead}, fs::remove_file};
+
+    use super::*;
+
+    #[test]
+    #[should_panic]
+    fn test_get_all_information_fail() {
+        get_all_information("", "b62f886ba07dcbf2c52c6d9b93463401", 1);
+        get_all_information("", "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", 2);
+    }
+    #[test]
+    fn test_get_all_information() {
+        let vec1 = get_all_information("zs_9", "b62f886ba07dcbf2c52c6d9b93463401", 1);
+        assert!(!vec1.is_empty());
+        let vec2 = get_all_information("4Paradigm", "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", 2);
+        assert!(!vec2.is_empty());
+    }
+
+    #[test]
+    fn test_get_url() {
+        let vec: Vec<String> = vec!["[{\"full_name\":\"test\"}]".to_string()];
+        let url = get_url(vec);
+        assert_eq!("test", url[0]);
+    }
+    #[test]
+    fn test_make_markdown() {
+        let md = File::create("test_markdown.md").unwrap();
+        make_markdown(&md, "head", vec![]);
+        let mut file = std::fs::File::open("test_markdown.md").unwrap();
+        let mut contents = String::new();
+        file.read_to_string(&mut contents).unwrap();
+        assert_eq!("|language| Files |Lines |Code |Comments |Blanks|\n|    :----:   |    :----:   |    :----:   |    :----:   |    :----:   |    :----:   |\n",contents);
+        remove_file("test_markdown.md").unwrap();
+    }
+
+    #[test]
+    fn test_make_csv() {
+        let csv = File::create("test_csv.csv").unwrap();
+        make_csv(&csv, "head", vec![]);
+        let mut file = std::fs::File::open("test_csv.csv").unwrap();
+        let mut contents = String::new();
+        file.read_to_string(&mut contents).unwrap();
+        assert_eq!("language,Files,Lines,Code,Comments,Blanks\n",contents);
+        remove_file("test_csv.csv").unwrap();
+    }
+    #[test]
+    fn test_tokei(){
+        tokei("test");
+        let md_file_read = BufReader::new(File::open("test.md").unwrap());
+        let mut index=0;
+        assert_eq!(4,BufReader::new( File::open("test.md").unwrap()).lines().count());
+        for line in md_file_read.lines() {
+        if index==0 {
+            assert_eq!("|language| Files |Lines |Code |Comments |Blanks|",line.unwrap());
+        }else if index==1{
+            assert_eq!("|    :----:   |    :----:   |    :----:   |    :----:   |    :----:   |    :----:   |",line.unwrap());
+        }else if index==2 {
+            assert_eq!("|C++|1|6|5|0|1|",line.unwrap());
+        }else if index==3 {
+            assert_eq!("|(total)|1|6|5|0|1|",line.unwrap());
+        }
+        index+=1;
+        }
+        let csv_file_read = BufReader::new( File::open("test.csv").unwrap());
+        let mut index=0;
+        assert_eq!(3,BufReader::new( File::open("test.csv").unwrap()).lines().count());
+        for line in csv_file_read.lines() {
+            if index==0 {
+                assert_eq!("language,Files,Lines,Code,Comments,Blanks",line.unwrap());
+            }else if index==1 {
+                assert_eq!("C++,1,6,5,0,1",line.unwrap());
+            }else if index==2 {
+                assert_eq!("(total),1,6,5,0,1",line.unwrap());
+            }
+            index+=1;
+        }
     }
 }
