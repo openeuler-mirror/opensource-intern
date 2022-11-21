@@ -1,0 +1,19 @@
+[package]
+name = "solv-sys"
+version = "0.1.4"
+license = "MIT"
+repository = "https://github.com/AOSC-Dev/abbs-meta-rs/tree/master/libsolv-sys"
+description = "Raw bindings to libsolv"
+keywords = ["libsolv", "solver", "dependency"]
+authors = ["liushuyu <liushuyu011@gmail.com>"]
+edition = "2018"
+
+[dependencies]
+libc = "0.2"
+
+[build-dependencies]
+cc = "1"
+pkg-config = "0.3"
+bindgen = "0.60"
+anyhow = "1"
+cmake = "0.1"
