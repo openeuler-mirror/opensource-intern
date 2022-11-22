@@ -1,0 +1,39 @@
+[package]
+name = "rdnf"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+[features]
+default=["zh_CN"]
+en_US=[]
+zh_CN=[]
+
+
+[dependencies]
+clap = {version="4",features = ["derive"]}
+config = "0.13"
+console="0.15"
+glob="0.3.0"
+indicatif = "0.17.0"
+dialoguer = "0.10"
+# libsolv-sys = "0.1.4"
+rustix={version = "*",features = ["process"]}
+anyhow = "1.0.60"
+lazy_static = "1.4.0"
+curl="0.4"
+tokio={version = "1.20",features = ["rt","macros"]}
+libc="0.2.119"
+serde={version = "*",features = ["serde_derive"]}
+rpm-sys={path="./rpm-sys",version="*"}
+solv-sys={path="./solv-sys",version="*"}
+quick-xml={version = "0.25"}
+sha-1="*"
+sha2="*"
+md-5="*"
+hex="*"
+chrono="0.4"
+
+
+[build-dependencies]
+cc="1"
